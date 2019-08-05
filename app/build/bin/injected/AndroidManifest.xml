@@ -32,6 +32,22 @@
 
 		</activity>
 
+		<provider
+			android:name="com.island.androidftpdocumentprovider.FtpProvider"
+			android:authorities="com.island.androidftpdocumentprovider"
+			android:grantUriPermissions="true"
+			android:exported="true"
+			android:permission="android.permission.MANAGE_DOCUMENTS">
+
+			<intent-filter>
+
+				<action
+					android:name="android.content.action.DOCUMENTS_PROVIDER"/>
+
+			</intent-filter>
+
+		</provider>
+
 	</application>
 
 </manifest>

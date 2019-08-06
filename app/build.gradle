@@ -21,6 +21,6 @@ android {
 
 dependencies {
     // https://mvnrepository.com/artifact/commons-net/commons-net
-    compile group: 'commons-net', name: 'commons-net', version: '3.6'
+    compile 'commons-net:commons-net:+'
 
 }

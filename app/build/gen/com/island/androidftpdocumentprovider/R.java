@@ -19,6 +19,10 @@ public final class R {
         public static final int ic_launcher_background=0x7f020000;
         public static final int ic_launcher_foreground=0x7f020001;
     }
+    public static final class id {
+        public static final int ip=0x7f080000;
+        public static final int port=0x7f080001;
+    }
     public static final class layout {
         public static final int activity_main=0x7f040000;
     }

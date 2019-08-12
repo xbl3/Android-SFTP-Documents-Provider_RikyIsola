@@ -13,6 +13,8 @@ import java.text.*;
 public class FTPProvider extends DocumentsProvider
 {
 	private static final String DEBUG_CREDENTIALS="anonymous";
+	private static final int MAX_LAST_MODIFIED=5;
+	private static final int MAX_SEARCH_RESULTS=20;
 	private static final String[]DEFAULT_ROOT_PROJECTION=
 	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID};
 	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
@@ -29,7 +31,7 @@ public class FTPProvider extends DocumentsProvider
 			row.add(Root.COLUMN_ROOT_ID,connection);
 			row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
 			row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
-			row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE);
+			row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE|Root.FLAG_SUPPORTS_RECENTS|Root.FLAG_SUPPORTS_SEARCH);
 			row.add(Root.COLUMN_TITLE,connection);
 		}
 		return result;
@@ -109,47 +111,149 @@ public class FTPProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
 	}
-	/*@Override
+	@Override
     public Cursor queryRecentDocuments(String rootId,String[]projection)throws FileNotFoundException
 	{
-        Log.v(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
-        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
-        final FTPFile parent=new FTPFile();
-        // Create a queue to store the most recent documents, which orders by last modified.
-        PriorityQueue<File> lastModifiedFiles = new PriorityQueue<File>(5, new Comparator<File>() {
-				public int compare(File i, File j) {
-					return Long.compare(i.lastModified(), j.lastModified());
-				}
-			});
-
+        Log.i(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
+        MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+        final FTPFile parent=getFile(rootId);
+        PriorityQueue<FTPFile>lastModifiedFiles=new PriorityQueue<FTPFile>(5,new Comparator<FTPFile>()
+		{
+			public int compare(FTPFile i,FTPFile j)
+			{
+				return Long.compare(i.lastModified(),j.lastModified());
+			}
+		});
         // Iterate through all files and directories in the file structure under the root.  If
         // the file is more recent than the least recently modified, add it to the queue,
         // limiting the number of results.
-        final LinkedList<File> pending = new LinkedList<File>();
-
+        LinkedList<FTPFile>pending=new LinkedList<FTPFile>();
         // Start by adding the parent to the list of files to be processed
         pending.add(parent);
-
         // Do while we still have unexamined files
-        while (!pending.isEmpty()) {
+        while(!pending.isEmpty())
+		{
             // Take a file from the list of unprocessed files
-            final File file = pending.removeFirst();
-            if (file.isDirectory()) {
+            final FTPFile file=pending.removeFirst();
+            if(file.isDirectory())
+			{
                 // If it's a directory, add all its children to the unprocessed list
-                Collections.addAll(pending, file.listFiles());
-            } else {
+                try
+				{
+					Collections.addAll(pending, file.listFiles());
+				}
+				catch(IOException e)
+				{
+					String msg="Error getting recent files";
+					Log.e(MainActivity.LOG_TAG,msg,e);
+					throw new FileNotFoundException(msg);
+				}
+            }
+			else
+			{
                 // If it's a file, add it to the ordered queue.
                 lastModifiedFiles.add(file);
             }
         }
-
         // Add the most recent files to the cursor, not exceeding the max number of results.
-        for (int i = 0; i < Math.min(MAX_LAST_MODIFIED + 1, lastModifiedFiles.size()); i++) {
-            final File file = lastModifiedFiles.remove();
-            includeFile(result, null, file);
+        for(int i=0;i<Math.min(MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
+		{
+            FTPFile file=lastModifiedFiles.remove();
+            putFileInfo(result.newRow(),file);
         }
         return result;
-    }*/
+    }
+	@Override
+    public Cursor querySearchDocuments(String rootId,String query,String[]projection)throws FileNotFoundException
+	{
+        Log.v(MainActivity.LOG_TAG,"Query search documents: rootId="+rootId+" query="+query+" projection="+Arrays.toString(projection));
+        // Create a cursor with the requested projection, or the default projection.
+        final MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+        final FTPFile parent=getFile(rootId);
+        // This example implementation searches file names for the query and doesn't rank search
+        // results, so we can stop as soon as we find a sufficient number of matches.  Other
+        // implementations might use other data about files, rather than the file name, to
+        // produce a match; it might also require a network call to query a remote server.
+
+        // Iterate through all files in the file structure under the root until we reach the
+        // desired number of matches.
+        final LinkedList<FTPFile> pending = new LinkedList<FTPFile>();
+
+        // Start by adding the parent to the list of files to be processed
+        pending.add(parent);
+
+        // Do while we still have unexamined files, and fewer than the max search results
+        while(!pending.isEmpty()&&result.getCount()<MAX_SEARCH_RESULTS)
+		{
+            // Take a file from the list of unprocessed files
+            final FTPFile file=pending.removeFirst();
+            if(file.isDirectory())
+			{
+                // If it's a directory, add all its children to the unprocessed list
+                try
+				{
+					Collections.addAll(pending, file.listFiles());
+				}
+				catch (IOException e)
+				{
+					String msg="Error searching files";
+					Log.e(MainActivity.LOG_TAG,msg,e);
+					throw new FileNotFoundException(msg);
+				}
+            }
+			else
+			{
+                // If it's a file and it matches, add it to the result cursor.
+                if(file.getName().toLowerCase().contains(query))
+				{
+                    putFileInfo(result.newRow(),file);
+                }
+            }
+        }
+        return result;
+    }
+	@Override
+    public String createDocument(String documentId,String mimeType,String displayName)throws FileNotFoundException
+	{
+        Log.i(MainActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
+        FTPFile parent=getFile(documentId);
+		FTPFile[]files=parent.listFiles();
+        FTPFile remoteFile=new FTPFile(parent,displayName);
+		try
+		{
+			boolean loop=false;
+			do
+			{
+				//TODO: Implement this method
+			}while(loop);
+        }
+		catch(IOException e)
+		{
+            throw new FileNotFoundException("Failed to create document with name "+displayName +" and documentId "+documentId);
+        }
+        return getDocumentId(remoteFile);
+    }
+    // END_INCLUDE(create_document)
+
+    // BEGIN_INCLUDE(delete_document)
+    @Override
+    public void deleteDocument(String documentId) throws FileNotFoundException {
+        Log.v(TAG, "deleteDocument");
+        File file = getFileForDocId(documentId);
+        if (file.delete()) {
+            Log.i(TAG, "Deleted file with id " + documentId);
+        } else {
+            throw new FileNotFoundException("Failed to delete document with id " + documentId);
+        }
+    }
+    // END_INCLUDE(delete_document)
+
+
+    @Override
+    public String getDocumentType(String documentId) throws FileNotFoundException {
+        File file = getFileForDocId(documentId);
+        return getTypeForFile(file);
+    }
 	private static String getRoot(String documentId)
 	{
 		return documentId.substring(0,documentId.indexOf("/"));
@@ -189,7 +293,7 @@ public class FTPProvider extends DocumentsProvider
 	}
 	private static final String getDocumentId(FTPFile ftp)
 	{
-		return ftp.getUser()+":"+ftp.getPort()+"/"+ftp.getPath();
+		return ftp.getIp()+":"+ftp.getPort()+"/"+ftp.getPath();
 	}
 	private void putFileInfo(MatrixCursor.RowBuilder row,FTPFile file)
 	{

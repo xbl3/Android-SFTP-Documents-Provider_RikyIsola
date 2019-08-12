@@ -32,9 +32,13 @@ public class FTPFile
 	{
 		this(ip,port,user,password,path,0,0,true);
 	}
-	public String getUser()
+	public FTPFile(FTPFile file,String path)
 	{
-		return user;
+		this(file.ip,file.port,file.user,file.password,fipe.path+"/"+path);
+	}
+	public String getIp()
+	{
+		return ip;
 	}
 	public int getPort()
 	{
@@ -58,7 +62,35 @@ public class FTPFile
 	}
 	public FTPFile[]listFiles()throws IOException
 	{
-		return list(ip,port,user,password,path);
+		try
+		{
+			String path=this.path;
+			FTPClient client=new FTPClient(ip,port);
+			client.login(user,password);
+			String[]files=client.dir(path,false);
+			String[]fileDetails=client.dir(path,true);
+			if(!path.isEmpty()&&path.charAt(path.length()-1)!='/')path+="/";
+			FTPFile[]list=new FTPFile[files.length];
+			for(int a=0;a<files.length;a++)
+			{
+				String file=files[a];
+				String fileDetail=fileDetails[a];
+				Scanner scanner=new Scanner(fileDetail);
+				for(int b=0;b<4;b++)scanner.next();
+				String filePath=path+file;
+				long modTime=client.modtime(path+file).getTime();
+				long size=scanner.nextLong();
+				boolean directory=fileDetail.charAt(0)=='d';
+				list[a]=new FTPFile(ip,port,user,password,filePath,modTime,size,directory);
+				scanner.close();
+			}
+			client.quit();
+			return list;
+		}
+		catch(FTPException e)
+		{
+			throw new IOException("Cannot list files",e);
+		}
 	}
 	public String getName()
 	{
@@ -103,37 +135,6 @@ public class FTPFile
 	public String toString()
 	{
 		return path;
-	}
-	public static FTPFile[]list(String ip,int port,String user,String password,String path)throws IOException
-	{
-		try
-		{
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			String[]files=client.dir(path,false);
-			String[]fileDetails=client.dir(path,true);
-			if(!path.isEmpty()&&path.charAt(path.length()-1)!='/')path+="/";
-			FTPFile[]list=new FTPFile[files.length];
-			for(int a=0;a<files.length;a++)
-			{
-				String file=files[a];
-				String fileDetail=fileDetails[a];
-				Scanner scanner=new Scanner(fileDetail);
-				for(int b=0;b<4;b++)scanner.next();
-				String filePath=path+file;
-				long modTime=client.modtime(path+file).getTime();
-				long size=scanner.nextLong();
-				boolean directory=fileDetail.charAt(0)=='d';
-				list[a]=new FTPFile(ip,port,user,password,filePath,modTime,size,directory);
-				scanner.close();
-			}
-			client.quit();
-			return list;
-		}
-		catch(FTPException e)
-		{
-			throw new IOException("Cannot list files",e);
-		}
 	}
 	public String getMimeType()
 	{

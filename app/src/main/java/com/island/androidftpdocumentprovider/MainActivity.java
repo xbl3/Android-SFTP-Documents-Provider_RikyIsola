@@ -9,6 +9,7 @@ public class MainActivity extends Activity
 	public static final String CONFIG="CONFIG";
 	public static final String IP="IP";
 	public static final String PORT="PORT";
+	public static final String LOG_TAG="FTPDocumentProvider";
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{

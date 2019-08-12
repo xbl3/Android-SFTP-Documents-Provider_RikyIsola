@@ -21,6 +21,8 @@ android {
 
 dependencies {
     // https://mvnrepository.com/artifact/commons-net/commons-net
-    compile 'commons-net:commons-net:+'
+    //compile 'commons-net:commons-net:+'
+	// https://mvnrepository.com/artifact/it.sauronsoftware/ftp4j
+	compile 'edtftp:edtftp:1.2.1+'
 
 }

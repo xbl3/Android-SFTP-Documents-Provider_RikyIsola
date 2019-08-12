@@ -12,52 +12,24 @@ import java.util.*;
 import java.text.*;
 public class FTPProvider extends DocumentsProvider
 {
-	private static final String[] DEFAULT_ROOT_PROJECTION =
-	new String[]{Root.COLUMN_ROOT_ID,
-        Root.COLUMN_FLAGS, Root.COLUMN_ICON, Root.COLUMN_TITLE,
-        //Root.COLUMN_SUMMARY, 
-		Root.COLUMN_DOCUMENT_ID};
-	private static final String[] DEFAULT_DOCUMENT_PROJECTION = new
-	String[]{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_SIZE,
-        Document.COLUMN_DISPLAY_NAME,Document.COLUMN_LAST_MODIFIED,Document.COLUMN_MIME_TYPE,
-        Document.COLUMN_FLAGS};
-	String[]connections={"127.0.0.1:8888"};
-	@Override
-	public boolean onCreate()
-	{
-		/*StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().build());
-		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().build());
-		SharedPreferences preferences=getContext().getSharedPreferences(MainActivity.CONFIG,0);
-		try
-		{
-			client=new FTPClient(preferences.getString(MainActivity.PORT,"127.0.0.1"),preferences.getInt(MainActivity.PORT,8888));
-			client.login("anonymous","anonymous@anonymous.com");
-			Log.i(MainActivity.LOG_TAG,client.toString());
-			return true;
-		}
-		catch(FTPException e)
-		{
-			Log.e(MainActivity.LOG_TAG,"Query child exception",e);
-		}
-		catch(IOException e)
-		{
-			Log.e(MainActivity.LOG_TAG,"Query child exception",e);
-		}*/
-		return true;
-	}
+	private static final String DEBUG_CREDENTIALS="anonymous";
+	private static final String[]DEFAULT_ROOT_PROJECTION=
+	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID};
+	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
+	{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_SIZE,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_LAST_MODIFIED,Document.COLUMN_MIME_TYPE,Document.COLUMN_FLAGS};
+	@Override public boolean onCreate(){return true;}
 	@Override
 	public Cursor queryRoots(String[]projection)throws FileNotFoundException
 	{
 		Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
-		MatrixCursor result=new MatrixCursor(projection!=null?projection:DEFAULT_ROOT_PROJECTION);
-		for(String connection:connections)
+		MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
+		for(String connection:new String[]{"127.0.0.1:8888"})
 		{
 			MatrixCursor.RowBuilder row=result.newRow();
 			row.add(Root.COLUMN_ROOT_ID,connection);
 			row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
-			//row.add(Root.COLUMN_SUMMARY, "ftp provider test");
-			row.add(Root.COLUMN_ICON, R.drawable.ic_launcher);
-			row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE);
+			row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
+			row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE);
 			row.add(Root.COLUMN_TITLE,connection);
 		}
 		return result;
@@ -66,11 +38,11 @@ public class FTPProvider extends DocumentsProvider
 	public Cursor queryDocument(String documentId,String[]projection)throws FileNotFoundException
 	{
 		Log.i(MainActivity.LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
-		MatrixCursor result=new MatrixCursor(projection!=null?projection:DEFAULT_DOCUMENT_PROJECTION);
-		if(documentId.equals("children"))return result;
+		MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 		try
 		{
-			getFileInfo(documentId,"drwx------   0 anonymous anonymous            0 Aug 11 03:11 ",new Date(),result.newRow());
+			FTPFile file=getFile(documentId);
+			putFileInfo(result.newRow(),file);
 			//return queryChildDocuments(documentId,projection,(String)null);
 		}
 		catch(Exception e)
@@ -85,19 +57,14 @@ public class FTPProvider extends DocumentsProvider
 	public Cursor queryChildDocuments(String parentDocumentId,String[]projection,String sortOrder)throws FileNotFoundException
 	{
 		Log.i(MainActivity.LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
-		MatrixCursor result=new MatrixCursor(projection!=null?projection:DEFAULT_DOCUMENT_PROJECTION);
+		MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 		try
 		{
 			if(parentDocumentId.charAt(parentDocumentId.length()-1)!='/')parentDocumentId+="/";
-			String[]protocolParameters=getRoot(parentDocumentId);
-			FTPClient client=new FTPClient(protocolParameters[0],Integer.valueOf(protocolParameters[1]));
-			client.login("anonymous","anonymous");
-			String path=getPath(parentDocumentId);
-			String[]filesDescription=client.dir(path,true);
-			String[]files=client.dir(path);
-			for(int a=0;a<filesDescription.length;a++)
+			FTPFile[]files=getFile(parentDocumentId).listFiles();
+			for(FTPFile file:files)
 			{
-				getFileInfo(parentDocumentId+files[a],filesDescription[a],client.modtime(path+files[a]),result.newRow());
+				putFileInfo(result.newRow(),file);
 			}
 		}
 		catch(Exception e)
@@ -109,18 +76,16 @@ public class FTPProvider extends DocumentsProvider
 		return result;
 	}
 	@Override
-	public ParcelFileDescriptor openDocument(final String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
+	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
 	{
 		Log.i(MainActivity.LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
-		final File file=new File(getContext().getExternalCacheDir(),"tmp");
 		int accessMode=ParcelFileDescriptor.parseMode(mode);
 		boolean isWrite=(mode.indexOf('w')!=-1);
-		String[]connectionParameter=getRoot(documentId);
 		try
 		{
-			final FTPClient client=new FTPClient(connectionParameter[0],Integer.valueOf(connectionParameter[1]));
-			client.login("anonymous","anonymous");
-			client.get(file.getPath(),getPath(documentId));
+			final FTPFile remoteFile=getFile(documentId);
+			final File file=new File(getContext().getExternalCacheDir(),remoteFile.getName());
+			remoteFile.download(file);
 			if(isWrite)
 			{
 				return ParcelFileDescriptor.open(file,accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
@@ -128,14 +93,7 @@ public class FTPProvider extends DocumentsProvider
 						@Override
 						public void onClose(IOException exception)
 						{
-							try
-							{
-								client.put(file.getPath(),getPath(documentId));
-							}
-							catch(Exception e)
-							{
-								Log.e(MainActivity.LOG_TAG,"Error opening document "+getPath(documentId),e);
-							}
+							remoteFile.asyncUpload(file);
 						}
 					});
 			}
@@ -151,57 +109,102 @@ public class FTPProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
 	}
-	private static String[]getRoot(String documentId)
+	/*@Override
+    public Cursor queryRecentDocuments(String rootId,String[]projection)throws FileNotFoundException
 	{
-		return documentId.substring(0,documentId.indexOf("/")).split(":");
+        Log.v(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
+        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
+        final FTPFile parent=new FTPFile();
+        // Create a queue to store the most recent documents, which orders by last modified.
+        PriorityQueue<File> lastModifiedFiles = new PriorityQueue<File>(5, new Comparator<File>() {
+				public int compare(File i, File j) {
+					return Long.compare(i.lastModified(), j.lastModified());
+				}
+			});
+
+        // Iterate through all files and directories in the file structure under the root.  If
+        // the file is more recent than the least recently modified, add it to the queue,
+        // limiting the number of results.
+        final LinkedList<File> pending = new LinkedList<File>();
+
+        // Start by adding the parent to the list of files to be processed
+        pending.add(parent);
+
+        // Do while we still have unexamined files
+        while (!pending.isEmpty()) {
+            // Take a file from the list of unprocessed files
+            final File file = pending.removeFirst();
+            if (file.isDirectory()) {
+                // If it's a directory, add all its children to the unprocessed list
+                Collections.addAll(pending, file.listFiles());
+            } else {
+                // If it's a file, add it to the ordered queue.
+                lastModifiedFiles.add(file);
+            }
+        }
+
+        // Add the most recent files to the cursor, not exceeding the max number of results.
+        for (int i = 0; i < Math.min(MAX_LAST_MODIFIED + 1, lastModifiedFiles.size()); i++) {
+            final File file = lastModifiedFiles.remove();
+            includeFile(result, null, file);
+        }
+        return result;
+    }*/
+	private static String getRoot(String documentId)
+	{
+		return documentId.substring(0,documentId.indexOf("/"));
+	}
+	private static String getIp(String documentId)
+	{
+		return documentId.substring(0,documentId.indexOf(":"));
+	}
+	private static int getPort(String documentId)
+	{
+		int end=documentId.indexOf("/");
+		if(end==-1)end=documentId.length();
+		return Integer.valueOf(documentId.substring(documentId.indexOf(":")+1,end));
 	}
 	private static String getPath(String documentId)
 	{
 		return documentId.substring(documentId.indexOf("/")+1);
 	}
-	private void getFileInfo(String documentId,String fileDetails,Date date,MatrixCursor.RowBuilder row)
+	private static final String[]resolveDocumentProjection(String[]projection)
+	{
+		if(projection==null)return DEFAULT_DOCUMENT_PROJECTION;
+		else return projection;
+	}
+	private static final String[]resolveRootProjection(String[]projection)
+	{
+		if(projection==null)return DEFAULT_ROOT_PROJECTION;
+		else return projection;
+	}
+	private static final FTPFile getFile(String documentID)
+	{
+		String ip=getIp(documentID);
+		int port=getPort(documentID);
+		String user=DEBUG_CREDENTIALS;
+		String password=DEBUG_CREDENTIALS;
+		String path=getPath(documentID);
+		return new FTPFile(ip,port,user,password,path);
+	}
+	private static final String getDocumentId(FTPFile ftp)
+	{
+		return ftp.getUser()+":"+ftp.getPort()+"/"+ftp.getPath();
+	}
+	private void putFileInfo(MatrixCursor.RowBuilder row,FTPFile file)
 	{
 		int flags;
-		String mime;
-		Scanner scanner=new Scanner(fileDetails);
-		String permissions=scanner.next();
-		scanner.next();
-		scanner.next();
-		scanner.next();
-		long size=scanner.nextLong();
-		scanner.next();
-		scanner.next();
-		scanner.next();
-		String file=scanner.nextLine();
-		if(permissions.charAt(0)=='d')
-		{
-			Log.i(MainActivity.LOG_TAG,"directory found");
-			flags=Document.FLAG_DIR_SUPPORTS_CREATE;
-			mime=Document.MIME_TYPE_DIR;
-			if(file.equals(" "))file="";
-		}
+		if(file.isDirectory())flags=Document.FLAG_DIR_SUPPORTS_CREATE;
 		else
 		{
 			flags=Document.FLAG_SUPPORTS_WRITE;
-			mime=getTypeForName(file);
-			row.add(Document.COLUMN_SIZE,size);
+			row.add(Document.COLUMN_SIZE,file.getSize());
 		}
 		flags|=Document.FLAG_SUPPORTS_COPY|Document.FLAG_SUPPORTS_DELETE|Document.FLAG_SUPPORTS_MOVE|Document.FLAG_SUPPORTS_REMOVE|Document.FLAG_SUPPORTS_RENAME;
 		row.add(Document.COLUMN_FLAGS,flags);
-		row.add(Document.COLUMN_MIME_TYPE,mime);
-		row.add(Document.COLUMN_DISPLAY_NAME,file);
-		row.add(Document.COLUMN_DOCUMENT_ID,documentId);
-		row.add(Document.COLUMN_LAST_MODIFIED,date.getTime());
+		row.add(Document.COLUMN_MIME_TYPE,file.getMimeType());
+		row.add(Document.COLUMN_DISPLAY_NAME,file.getName());
+		row.add(Document.COLUMN_DOCUMENT_ID,getDocumentId(file));
+		row.add(Document.COLUMN_LAST_MODIFIED,file.lastModified());
 	}
-	private static String getTypeForName(String name) {
-        final int lastDot = name.lastIndexOf('.');
-        if (lastDot >= 0) {
-            final String extension = name.substring(lastDot + 1);
-            final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-            if (mime != null) {
-                return mime;
-            }
-        }
-        return "application/octet-stream";
-    }
 }

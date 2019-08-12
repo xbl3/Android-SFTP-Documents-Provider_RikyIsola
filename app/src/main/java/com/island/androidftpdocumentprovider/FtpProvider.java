@@ -49,7 +49,7 @@ public class FtpProvider extends DocumentsProvider
 		row.add(Root.COLUMN_ROOT_ID,"127.0.0.1");
 		row.add(Root.COLUMN_DOCUMENT_ID,"127.0.0.1");
 		row.add(Root.COLUMN_SUMMARY, "ftp provider test");
-		row.add(Root.COLUMN_ICON, R.drawable.ic_launcher_foreground);
+		row.add(Root.COLUMN_ICON, R.drawable.ic_launcher);
 		row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE);
 		row.add(Root.COLUMN_TITLE,"ftp");
 		

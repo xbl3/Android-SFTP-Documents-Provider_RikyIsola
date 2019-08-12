@@ -10,7 +10,7 @@ import com.enterprisedt.net.ftp.*;
 import android.util.*;
 import java.util.*;
 import java.text.*;
-public class FtpProvider extends DocumentsProvider
+public class FTPProvider extends DocumentsProvider
 {
 	private static final String[] DEFAULT_ROOT_PROJECTION =
 	new String[]{Root.COLUMN_ROOT_ID,

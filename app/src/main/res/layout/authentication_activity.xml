@@ -30,7 +30,8 @@
 			android:layout_width="wrap_content"
 			android:ems="10"
 			android:hint="192.168.1.1"
-			android:id="@+id/ip"/>
+			android:id="@+id/ip"
+			android:gravity="center"/>
 
 	</RelativeLayout>
 
@@ -59,9 +60,91 @@
 			android:layout_width="wrap_content"
 			android:ems="10"
 			android:hint="1234"
-			android:id="@+id/port"/>
+			android:id="@+id/port"
+			android:gravity="center"/>
 
 	</RelativeLayout>
+
+	<LinearLayout
+		android:orientation="horizontal"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1.0"
+		android:gravity="center">
+
+		<Switch
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Anonymous:"
+			android:id="@+id/anonymous"/>
+
+	</LinearLayout>
+
+	<LinearLayout
+		android:orientation="vertical"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1.0"
+		android:visibility="visible"
+		android:id="@+id/credentials">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center"
+			android:layout_weight="1.0">
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="USERNAME"
+				android:textAppearance="?android:attr/textAppearanceLarge"/>
+
+		</RelativeLayout>
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1.0"
+			android:gravity="center">
+
+			<EditText
+				android:layout_width="wrap_content"
+				android:ems="10"
+				android:layout_height="wrap_content"
+				android:id="@+id/user"/>
+
+		</RelativeLayout>
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1.0"
+			android:gravity="center">
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="PASSWORD"
+				android:textAppearance="?android:attr/textAppearanceLarge"/>
+
+		</RelativeLayout>
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1.0"
+			android:gravity="center">
+
+			<EditText
+				android:layout_width="wrap_content"
+				android:ems="10"
+				android:layout_height="wrap_content"
+				android:id="@+id/password"/>
+
+		</RelativeLayout>
+
+	</LinearLayout>
 
 	<RelativeLayout
 		android:layout_height="wrap_content"
@@ -73,7 +156,7 @@
 			android:layout_height="wrap_content"
 			android:layout_width="wrap_content"
 			android:text="Confirm"
-			android:onClick="save"/>
+			android:onClick="confirm"/>
 
 	</RelativeLayout>
 

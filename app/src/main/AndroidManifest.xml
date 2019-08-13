@@ -16,6 +16,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+		<activity android:name=".AuthenticationActivity"/>
 		<provider
             android:name="com.island.androidftpdocumentprovider.FTPProvider"
             android:authorities="com.island.androidftpdocumentprovider"

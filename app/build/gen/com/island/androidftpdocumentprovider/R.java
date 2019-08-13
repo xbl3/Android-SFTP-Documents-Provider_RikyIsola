@@ -20,8 +20,12 @@ public final class R {
         public static final int ic_launcher_round=0x7f020001;
     }
     public static final class id {
+        public static final int anonymous=0x7f080002;
+        public static final int credentials=0x7f080003;
         public static final int ip=0x7f080000;
+        public static final int password=0x7f080005;
         public static final int port=0x7f080001;
+        public static final int user=0x7f080004;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

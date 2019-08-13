@@ -5,6 +5,7 @@ import android.os.*;
 import android.accounts.*;
 import android.util.*;
 import java.util.*;
+import com.enterprisedt.net.ftp.*;
 public class AccountService extends Service
 {
 	private Authenticator authenticator;
@@ -62,36 +63,25 @@ public class AccountService extends Service
 			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" authTokenType="+authTokenType+" options="+options);
 			AccountManager accountManager=AccountManager.get(context);
 			String authToken=accountManager.peekAuthToken(account,authTokenType);
-			if(TextUtils.isEmpty(authToken))
+			if(authToken==null)
 			{
-				final String password=accountManager.getPassword(account);
-				if(password != null)
+				String password=accountManager.getPassword(account);
+				if(password!=null)
 				{
-					authToken = ZoftinoAccountRegLoginHelper.authenticate(account.name, password);
+					authToken=account.name+"/"+password;
 				}
 			}
-			if (!TextUtils.isEmpty(authToken)) {
-				final Bundle result = new Bundle();
-				result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
-				result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
-				result.putString(AccountManager.KEY_AUTHTOKEN, authToken);
-				return result;
-			}
-
-			final Intent intent = new Intent(context, ZoftinoAccountActivity.class);
-			intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-			intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);
-			intent.putExtra(AccountManager.KEY_ACCOUNT_NAME, account.name);
-			intent.putExtra(TOKEN_TYPE, authTokenType);
-			final Bundle bundle = new Bundle();
-			bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-			return bundle;
+			Bundle result=new Bundle();
+			result.putString(AccountManager.KEY_ACCOUNT_NAME,account.name);
+			result.putString(AccountManager.KEY_ACCOUNT_TYPE,account.type);
+			result.putString(AccountManager.KEY_AUTHTOKEN,authToken);
+			return result;
 		}
 		@Override
 		public String getAuthTokenLabel(String authTokenType)
 		{
 			Log.i(MainActivity.LOG_TAG,"Add account: authTokenType="+authTokenType);
-			return null;
+			return"full";
 		}
 		@Override
 		public Bundle updateCredentials(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options) throws NetworkErrorException
@@ -103,7 +93,9 @@ public class AccountService extends Service
 		public Bundle hasFeatures(AccountAuthenticatorResponse response,Account account,String[]features)throws NetworkErrorException
 		{
 			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" features="+Arrays.toString(features));
-			return null;
+			Bundle result=new Bundle();
+			result.putBoolean(AccountManager.KEY_BOOLEAN_RESULT,false);
+			return result;
 		}
 	}
 }

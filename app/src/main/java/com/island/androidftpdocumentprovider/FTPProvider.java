@@ -12,9 +12,7 @@ import java.util.*;
 import java.text.*;
 public class FTPProvider extends DocumentsProvider
 {
-	private static final String DEBUG_CREDENTIALS="anonymous";
-	private static final int MAX_LAST_MODIFIED=5;
-	private static final int MAX_SEARCH_RESULTS=20;
+	private static final String DEBUG_PASSWORD="anonymous";
 	private static final String[]DEFAULT_ROOT_PROJECTION=
 	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID};
 	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
@@ -27,7 +25,7 @@ public class FTPProvider extends DocumentsProvider
 		{
 			Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
-			for(String connection:new String[]{"127.0.0.1:8888"})
+			for(String connection:new String[]{"127.0.0.1:8888@anonymous"})
 			{
 				MatrixCursor.RowBuilder row=result.newRow();
 				row.add(Root.COLUMN_ROOT_ID,connection);
@@ -238,9 +236,13 @@ public class FTPProvider extends DocumentsProvider
 	}
 	private static int getPort(String documentId)
 	{
+		return Integer.valueOf(documentId.substring(documentId.indexOf(":")+1,documentId.indexOf("@")));
+	}
+	private static String getUser(String documentId)
+	{
 		int end=documentId.indexOf("/");
 		if(end==-1)end=documentId.length();
-		return Integer.valueOf(documentId.substring(documentId.indexOf(":")+1,end));
+		return documentId.substring(documentId.indexOf("@")+1,end);
 	}
 	private static String getPath(String documentId)
 	{
@@ -258,18 +260,18 @@ public class FTPProvider extends DocumentsProvider
 		if(projection==null)return DEFAULT_ROOT_PROJECTION;
 		else return projection;
 	}
-	private static final FTPFile getFile(String documentID)throws IOException
+	private static final FTPFile getFile(String documentId)throws IOException
 	{
-		String ip=getIp(documentID);
-		int port=getPort(documentID);
-		String user=DEBUG_CREDENTIALS;
-		String password=DEBUG_CREDENTIALS;
-		String path=getPath(documentID);
+		String ip=getIp(documentId);
+		int port=getPort(documentId);
+		String user=getUser(documentId);
+		String password=DEBUG_PASSWORD;
+		String path=getPath(documentId);
 		return new FTPFile(ip,port,user,password,path);
 	}
 	private static final String getDocumentId(FTPFile ftp)
 	{
-		return ftp.getIp()+":"+ftp.getPort()+"/"+ftp.getPath();
+		return ftp.getIp()+":"+ftp.getPort()+"@"+ftp.getUser()+"/"+ftp.getPath();
 	}
 	private void putFileInfo(MatrixCursor.RowBuilder row,FTPFile file)
 	{

@@ -85,6 +85,10 @@ public class FTPFile
 	{
 		return port;
 	}
+	public String getUser()
+	{
+		return user;
+	}
 	public String getPath()
 	{
 		return path;

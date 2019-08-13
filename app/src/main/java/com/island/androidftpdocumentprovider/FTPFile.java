@@ -28,13 +28,39 @@ public class FTPFile
 		this.user=user;
 		this.password=password;
 	}
-	public FTPFile(String ip,int port,String user,String password,String path)
+	public FTPFile(String ip,int port,String user,String password,String path)throws IOException
 	{
-		this(ip,port,user,password,path,0,0,true);
+		this.path=path;
+		this.ip=ip;
+		this.port=port;
+		this.user=user;
+		this.password=password;
+		long size=0;
+		long lastModified=0;
+		boolean directory=true;
+		FTPFile parent=getParentFile();
+		if(parent!=null)
+		{
+			FTPFile[]files=parent.listFiles();
+			for(FTPFile file:files)if(equals(file))
+			{
+				size=file.size;
+				lastModified=file.lastModified;
+				directory=file.directory;
+				break;
+			}
+		}
+		this.size=size;
+		this.lastModified=lastModified;
+		this.directory=directory;
 	}
-	public FTPFile(FTPFile file,String path)
+	public FTPFile(FTPFile file,String path)throws IOException
 	{
 		this(file.ip,file.port,file.user,file.password,file.path+"/"+path);
+	}
+	public FTPFile(FTPFile file,String path,long lastModified,long size,boolean directory)
+	{
+		this(file.ip,file.port,file.user,file.password,file.path+"/"+path,lastModified,size,directory);
 	}
 	@Override
 	public String toString()
@@ -125,6 +151,20 @@ public class FTPFile
 			throw new IOException("Error downloading file "+toString(),e);
 		}
 	}
+	public void upload(File local)throws IOException
+	{
+		try
+		{
+			FTPClient client=new FTPClient(ip,port);
+			client.login(user,password);
+			client.put(local.getPath(),path,false);
+			client.quit();
+		}
+		catch(FTPException e)
+		{
+			throw new IOException("Error uploading document "+FTPFile.this.toString(),e);
+		}
+	}
 	public void asyncUpload(final File local)
 	{
 		new AsyncTask()
@@ -134,17 +174,15 @@ public class FTPFile
 			{
 				try
 				{
-					FTPClient client=new FTPClient(ip,port);
-					client.login(user,password);
-					client.put(local.getPath(),path,false);
+					upload(local);
 				}
 				catch(Exception e)
 				{
-					Log.e(MainActivity.LOG_TAG,"Error saving document "+toString(),e);
+					Log.e(MainActivity.LOG_TAG,"Error uploading document "+FTPFile.this.toString(),e);
 				}
 				return null;
 			}
-		}.doInBackground(null);
+		}.execute();
 	}
 	public String getMimeType()
 	{
@@ -167,7 +205,9 @@ public class FTPFile
     }
 	public FTPFile getParentFile()
 	{
-		return new FTPFile(ip,port,user,password,path.substring(0,path.lastIndexOf("/")));
+		int end=path.lastIndexOf("/");
+		if(end==-1)return null;
+		else return new FTPFile(ip,port,user,password,path.substring(0,end),0,0,true);
 	}
 	public boolean exist()throws IOException
 	{
@@ -184,6 +224,7 @@ public class FTPFile
 			FTPClient client=new FTPClient(ip,port);
 			client.login(user,password);
 			client.put(new byte[0],path);
+			client.quit();
 		}
 		catch(FTPException e)
 		{
@@ -198,6 +239,7 @@ public class FTPFile
 			FTPClient client=new FTPClient(ip,port);
 			client.login(user,password);
 			client.mkdir(path);
+			client.quit();
 		}
 		catch(FTPException e)
 		{
@@ -211,12 +253,39 @@ public class FTPFile
 			if(!exist())throw new FileNotFoundException("File "+toString()+" not found");
 			FTPClient client=new FTPClient(ip,port);
 			client.login(user,password);
-			if(directory)client.rmdir(path);
+			if(directory)
+			{
+				FTPFile[]files=listFiles();
+				for(FTPFile file:files)file.delete();
+				client.rmdir(path);
+			}
 			else client.delete(path);
+			client.quit();
 		}
 		catch(FTPException e)
 		{
 			throw new IOException("Error deleting file "+toString(),e);
 		}
+	}
+	public void copy(FTPFile dest,File cacheFolder,boolean move)throws IOException
+	{
+		if(isDirectory())
+		{
+			dest.mkdir();
+			FTPFile[]files=listFiles();
+			for(FTPFile file:files)
+			{
+				FTPFile newDest=new FTPFile(dest,file.getName(),file.lastModified,file.size,file.directory);
+				file.copy(newDest,cacheFolder,false);
+			}
+		}
+		else
+		{
+			File cache=new File(cacheFolder,getName());
+			download(cache);
+			dest.upload(cache);
+			cache.delete();
+		}
+		if(move)delete();
 	}
 }

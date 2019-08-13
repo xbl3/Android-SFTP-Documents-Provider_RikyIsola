@@ -33,7 +33,7 @@ public class FTPProvider extends DocumentsProvider
 				row.add(Root.COLUMN_ROOT_ID,connection);
 				row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
 				row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
-				row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE|Root.FLAG_SUPPORTS_RECENTS|Root.FLAG_SUPPORTS_SEARCH);
+				row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE);
 				row.add(Root.COLUMN_TITLE,connection);
 			}
 			return result;
@@ -120,120 +120,13 @@ public class FTPProvider extends DocumentsProvider
 		}
 	}
 	@Override
-    public Cursor queryRecentDocuments(String rootId,String[]projection)throws FileNotFoundException
-	{
-        try
-		{
-			Log.i(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
-			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-			final FTPFile parent=getFile(rootId);
-			PriorityQueue<FTPFile>lastModifiedFiles=new PriorityQueue<FTPFile>(5,new Comparator<FTPFile>()
-				{
-					public int compare(FTPFile i,FTPFile j)
-					{
-						return Long.compare(i.lastModified(),j.lastModified());
-					}
-				});
-			// Iterate through all files and directories in the file structure under the root.  If
-			// the file is more recent than the least recently modified, add it to the queue,
-			// limiting the number of results.
-			LinkedList<FTPFile>pending=new LinkedList<FTPFile>();
-			// Start by adding the parent to the list of files to be processed
-			pending.add(parent);
-			// Do while we still have unexamined files
-			while(!pending.isEmpty())
-			{
-				// Take a file from the list of unprocessed files
-				final FTPFile file=pending.removeFirst();
-				if(file.isDirectory())
-				{
-					// If it's a directory, add all its children to the unprocessed list
-					Collections.addAll(pending,file.listFiles());
-				}
-				else
-				{
-					// If it's a file, add it to the ordered queue.
-					lastModifiedFiles.add(file);
-				}
-			}
-			// Add the most recent files to the cursor, not exceeding the max number of results.
-			for(int i=0;i<Math.min(MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
-			{
-				FTPFile file=lastModifiedFiles.remove();
-				putFileInfo(result.newRow(),file);
-			}
-			return result;
-		}
-		catch(Exception e)
-		{
-			String msg="Error querying recents";
-			Log.e(MainActivity.LOG_TAG,msg,e);
-			throw new FileNotFoundException(msg);
-		}
-    }
-	@Override
-    public Cursor querySearchDocuments(String rootId,String query,String[]projection)throws FileNotFoundException
-	{
-        try
-		{
-			Log.v(MainActivity.LOG_TAG,"Query search documents: rootId="+rootId+" query="+query+" projection="+Arrays.toString(projection));
-			// Create a cursor with the requested projection, or the default projection.
-			final MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-			final FTPFile parent=getFile(rootId);
-			// This example implementation searches file names for the query and doesn't rank search
-			// results, so we can stop as soon as we find a sufficient number of matches.  Other
-			// implementations might use other data about files, rather than the file name, to
-			// produce a match; it might also require a network call to query a remote server.
-
-			// Iterate through all files in the file structure under the root until we reach the
-			// desired number of matches.
-			final LinkedList<FTPFile> pending = new LinkedList<FTPFile>();
-
-			// Start by adding the parent to the list of files to be processed
-			pending.add(parent);
-
-			// Do while we still have unexamined files, and fewer than the max search results
-			while(!pending.isEmpty()&&result.getCount()<MAX_SEARCH_RESULTS)
-			{
-				// Take a file from the list of unprocessed files
-				final FTPFile file=pending.removeFirst();
-				if(file.isDirectory())
-				{
-					// If it's a directory, add all its children to the unprocessed list
-					Collections.addAll(pending,file.listFiles());
-				}
-				else
-				{
-					// If it's a file and it matches, add it to the result cursor.
-					if(file.getName().toLowerCase().contains(query))
-					{
-						putFileInfo(result.newRow(),file);
-					}
-				}
-			}
-			return result;
-		}
-		catch(Exception e)
-		{
-			String msg="Error searching "+query;
-			Log.e(MainActivity.LOG_TAG,msg,e);
-			throw new FileNotFoundException(msg);
-		}
-    }
-	@Override
     public String createDocument(String documentId,String mimeType,String displayName)throws FileNotFoundException
 	{
 		try
 		{
 			Log.i(MainActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
 			FTPFile parent=getFile(documentId);
-			FTPFile remoteFile;
-			while(true)
-			{
-				remoteFile=new FTPFile(parent,displayName);
-				if(remoteFile.exist())displayName+="2";
-				else break;
-			}
+			FTPFile remoteFile=new FTPFile(parent,displayName);
 			if(Document.MIME_TYPE_DIR.equals(mimeType))remoteFile.mkdir();
 			else remoteFile.createNewFile();
 			return getDocumentId(remoteFile);
@@ -277,6 +170,64 @@ public class FTPProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
     }
+
+	@Override
+	public String renameDocument(String documentId,String displayName)throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(MainActivity.LOG_TAG,"Rename document: documentId="+documentId+" displayName="+displayName);
+			FTPFile source=getFile(documentId);
+			FTPFile parent=source.getParentFile();
+			FTPFile destination=new FTPFile(parent,displayName,source.lastModified(),source.getSize(),source.isDirectory());
+			source.copy(destination,getContext().getExternalCacheDir(),true);
+			return getDocumentId(destination);
+		}
+		catch(Exception e)
+		{
+			String msg="Error renaming document "+documentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+	}
+	@Override
+	public String moveDocument(String sourceDocumentId,String sourceParentDocumentId,String targetParentDocumentId) throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(MainActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" sourceParentDocumentId="+sourceParentDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
+			FTPFile source=getFile(sourceDocumentId);
+			FTPFile parent=getFile(targetParentDocumentId);
+			FTPFile destination=new FTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
+			source.copy(destination,getContext().getExternalCacheDir(),true);
+			return getDocumentId(destination);
+		}
+		catch(Exception e)
+		{
+			String msg="Error moving document "+sourceDocumentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+	}
+	@Override
+	public String copyDocument(String sourceDocumentId,String targetParentDocumentId) throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(MainActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
+			FTPFile source=getFile(sourceDocumentId);
+			FTPFile parent=getFile(targetParentDocumentId);
+			FTPFile destination=new FTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
+			source.copy(destination,getContext().getExternalCacheDir(),false);
+			return getDocumentId(destination);
+		}
+		catch(Exception e)
+		{
+			String msg="Error moving document "+sourceDocumentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+	}
 	private static String getRoot(String documentId)
 	{
 		return documentId.substring(0,documentId.indexOf("/"));
@@ -307,7 +258,7 @@ public class FTPProvider extends DocumentsProvider
 		if(projection==null)return DEFAULT_ROOT_PROJECTION;
 		else return projection;
 	}
-	private static final FTPFile getFile(String documentID)
+	private static final FTPFile getFile(String documentID)throws IOException
 	{
 		String ip=getIp(documentID);
 		int port=getPort(documentID);
@@ -329,7 +280,7 @@ public class FTPProvider extends DocumentsProvider
 			flags=Document.FLAG_SUPPORTS_WRITE;
 			row.add(Document.COLUMN_SIZE,file.getSize());
 		}
-		flags|=Document.FLAG_SUPPORTS_COPY|Document.FLAG_SUPPORTS_DELETE|Document.FLAG_SUPPORTS_MOVE|Document.FLAG_SUPPORTS_REMOVE|Document.FLAG_SUPPORTS_RENAME;
+		flags|=Document.FLAG_SUPPORTS_COPY|Document.FLAG_SUPPORTS_DELETE|Document.FLAG_SUPPORTS_MOVE|Document.FLAG_SUPPORTS_RENAME;
 		row.add(Document.COLUMN_FLAGS,flags);
 		row.add(Document.COLUMN_MIME_TYPE,file.getMimeType());
 		row.add(Document.COLUMN_DISPLAY_NAME,file.getName());

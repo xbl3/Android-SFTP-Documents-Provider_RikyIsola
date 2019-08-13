@@ -34,7 +34,22 @@ public class FTPFile
 	}
 	public FTPFile(FTPFile file,String path)
 	{
-		this(file.ip,file.port,file.user,file.password,fipe.path+"/"+path);
+		this(file.ip,file.port,file.user,file.password,file.path+"/"+path);
+	}
+	@Override
+	public String toString()
+	{
+		return path;
+	}
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof FTPFile)
+		{
+			FTPFile file=(FTPFile)obj;
+			return path.equals(file.path);
+		}
+		return false;
 	}
 	public String getIp()
 	{
@@ -89,7 +104,7 @@ public class FTPFile
 		}
 		catch(FTPException e)
 		{
-			throw new IOException("Cannot list files",e);
+			throw new IOException("Cannot list files of "+toString(),e);
 		}
 	}
 	public String getName()
@@ -131,11 +146,6 @@ public class FTPFile
 			}
 		}.doInBackground(null);
 	}
-	@Override
-	public String toString()
-	{
-		return path;
-	}
 	public String getMimeType()
 	{
         if(isDirectory())
@@ -155,4 +165,58 @@ public class FTPFile
 			return"application/octet-stream";
 		}
     }
+	public FTPFile getParentFile()
+	{
+		return new FTPFile(ip,port,user,password,path.substring(0,path.lastIndexOf("/")));
+	}
+	public boolean exist()throws IOException
+	{
+		FTPFile parent=getParentFile();
+		FTPFile[]files=parent.listFiles();
+		for(FTPFile file:files)if(equals(file))return true;
+		return false;
+	}
+	public void createNewFile()throws IOException
+	{
+		try
+		{
+			if(exist())throw new IOException("File already exist");
+			FTPClient client=new FTPClient(ip,port);
+			client.login(user,password);
+			client.put(new byte[0],path);
+		}
+		catch(FTPException e)
+		{
+			throw new IOException("Error creating new file "+toString(),e);
+		}
+	}
+	public void mkdir()throws IOException
+	{
+		try
+		{
+			if(exist())throw new IOException("Directory already exist");
+			FTPClient client=new FTPClient(ip,port);
+			client.login(user,password);
+			client.mkdir(path);
+		}
+		catch(FTPException e)
+		{
+			throw new IOException("Error creating directory "+toString(),e);
+		}
+	}
+	public void delete()throws IOException
+	{
+		try
+		{
+			if(!exist())throw new FileNotFoundException("File "+toString()+" not found");
+			FTPClient client=new FTPClient(ip,port);
+			client.login(user,password);
+			if(directory)client.rmdir(path);
+			else client.delete(path);
+		}
+		catch(FTPException e)
+		{
+			throw new IOException("Error deleting file "+toString(),e);
+		}
+	}
 }

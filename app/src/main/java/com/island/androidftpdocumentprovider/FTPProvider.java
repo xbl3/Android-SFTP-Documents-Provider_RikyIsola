@@ -23,18 +23,27 @@ public class FTPProvider extends DocumentsProvider
 	@Override
 	public Cursor queryRoots(String[]projection)throws FileNotFoundException
 	{
-		Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
-		MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
-		for(String connection:new String[]{"127.0.0.1:8888"})
+		try
 		{
-			MatrixCursor.RowBuilder row=result.newRow();
-			row.add(Root.COLUMN_ROOT_ID,connection);
-			row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
-			row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
-			row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE|Root.FLAG_SUPPORTS_RECENTS|Root.FLAG_SUPPORTS_SEARCH);
-			row.add(Root.COLUMN_TITLE,connection);
+			Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
+			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
+			for(String connection:new String[]{"127.0.0.1:8888"})
+			{
+				MatrixCursor.RowBuilder row=result.newRow();
+				row.add(Root.COLUMN_ROOT_ID,connection);
+				row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
+				row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
+				row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE|Root.FLAG_SUPPORTS_RECENTS|Root.FLAG_SUPPORTS_SEARCH);
+				row.add(Root.COLUMN_TITLE,connection);
+			}
+			return result;
 		}
-		return result;
+		catch(Exception e)
+		{
+			String msg="Error querying roots";
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
 	}
 	@Override
 	public Cursor queryDocument(String documentId,String[]projection)throws FileNotFoundException
@@ -45,11 +54,10 @@ public class FTPProvider extends DocumentsProvider
 		{
 			FTPFile file=getFile(documentId);
 			putFileInfo(result.newRow(),file);
-			//return queryChildDocuments(documentId,projection,(String)null);
 		}
 		catch(Exception e)
 		{
-			String msg="Error querying child "+getPath(documentId);
+			String msg="Error querying child "+documentId;
 			Log.e(MainActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
@@ -71,7 +79,7 @@ public class FTPProvider extends DocumentsProvider
 		}
 		catch(Exception e)
 		{
-			String msg="Error querying childs of "+getPath(parentDocumentId);
+			String msg="Error querying childs of "+parentDocumentId;
 			Log.e(MainActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
@@ -106,7 +114,7 @@ public class FTPProvider extends DocumentsProvider
 		}
 		catch(Exception e)
 		{
-			String msg="Error opening document "+getPath(documentId);
+			String msg="Error opening document "+documentId;
 			Log.e(MainActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
@@ -114,145 +122,160 @@ public class FTPProvider extends DocumentsProvider
 	@Override
     public Cursor queryRecentDocuments(String rootId,String[]projection)throws FileNotFoundException
 	{
-        Log.i(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
-        MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-        final FTPFile parent=getFile(rootId);
-        PriorityQueue<FTPFile>lastModifiedFiles=new PriorityQueue<FTPFile>(5,new Comparator<FTPFile>()
+        try
 		{
-			public int compare(FTPFile i,FTPFile j)
+			Log.i(MainActivity.LOG_TAG,"Query recent documents: rootId="+rootId+" projection="+Arrays.toString(projection));
+			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+			final FTPFile parent=getFile(rootId);
+			PriorityQueue<FTPFile>lastModifiedFiles=new PriorityQueue<FTPFile>(5,new Comparator<FTPFile>()
+				{
+					public int compare(FTPFile i,FTPFile j)
+					{
+						return Long.compare(i.lastModified(),j.lastModified());
+					}
+				});
+			// Iterate through all files and directories in the file structure under the root.  If
+			// the file is more recent than the least recently modified, add it to the queue,
+			// limiting the number of results.
+			LinkedList<FTPFile>pending=new LinkedList<FTPFile>();
+			// Start by adding the parent to the list of files to be processed
+			pending.add(parent);
+			// Do while we still have unexamined files
+			while(!pending.isEmpty())
 			{
-				return Long.compare(i.lastModified(),j.lastModified());
+				// Take a file from the list of unprocessed files
+				final FTPFile file=pending.removeFirst();
+				if(file.isDirectory())
+				{
+					// If it's a directory, add all its children to the unprocessed list
+					Collections.addAll(pending,file.listFiles());
+				}
+				else
+				{
+					// If it's a file, add it to the ordered queue.
+					lastModifiedFiles.add(file);
+				}
 			}
-		});
-        // Iterate through all files and directories in the file structure under the root.  If
-        // the file is more recent than the least recently modified, add it to the queue,
-        // limiting the number of results.
-        LinkedList<FTPFile>pending=new LinkedList<FTPFile>();
-        // Start by adding the parent to the list of files to be processed
-        pending.add(parent);
-        // Do while we still have unexamined files
-        while(!pending.isEmpty())
-		{
-            // Take a file from the list of unprocessed files
-            final FTPFile file=pending.removeFirst();
-            if(file.isDirectory())
+			// Add the most recent files to the cursor, not exceeding the max number of results.
+			for(int i=0;i<Math.min(MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
 			{
-                // If it's a directory, add all its children to the unprocessed list
-                try
-				{
-					Collections.addAll(pending, file.listFiles());
-				}
-				catch(IOException e)
-				{
-					String msg="Error getting recent files";
-					Log.e(MainActivity.LOG_TAG,msg,e);
-					throw new FileNotFoundException(msg);
-				}
-            }
-			else
-			{
-                // If it's a file, add it to the ordered queue.
-                lastModifiedFiles.add(file);
-            }
-        }
-        // Add the most recent files to the cursor, not exceeding the max number of results.
-        for(int i=0;i<Math.min(MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
+				FTPFile file=lastModifiedFiles.remove();
+				putFileInfo(result.newRow(),file);
+			}
+			return result;
+		}
+		catch(Exception e)
 		{
-            FTPFile file=lastModifiedFiles.remove();
-            putFileInfo(result.newRow(),file);
-        }
-        return result;
+			String msg="Error querying recents";
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
     }
 	@Override
     public Cursor querySearchDocuments(String rootId,String query,String[]projection)throws FileNotFoundException
 	{
-        Log.v(MainActivity.LOG_TAG,"Query search documents: rootId="+rootId+" query="+query+" projection="+Arrays.toString(projection));
-        // Create a cursor with the requested projection, or the default projection.
-        final MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-        final FTPFile parent=getFile(rootId);
-        // This example implementation searches file names for the query and doesn't rank search
-        // results, so we can stop as soon as we find a sufficient number of matches.  Other
-        // implementations might use other data about files, rather than the file name, to
-        // produce a match; it might also require a network call to query a remote server.
-
-        // Iterate through all files in the file structure under the root until we reach the
-        // desired number of matches.
-        final LinkedList<FTPFile> pending = new LinkedList<FTPFile>();
-
-        // Start by adding the parent to the list of files to be processed
-        pending.add(parent);
-
-        // Do while we still have unexamined files, and fewer than the max search results
-        while(!pending.isEmpty()&&result.getCount()<MAX_SEARCH_RESULTS)
+        try
 		{
-            // Take a file from the list of unprocessed files
-            final FTPFile file=pending.removeFirst();
-            if(file.isDirectory())
+			Log.v(MainActivity.LOG_TAG,"Query search documents: rootId="+rootId+" query="+query+" projection="+Arrays.toString(projection));
+			// Create a cursor with the requested projection, or the default projection.
+			final MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+			final FTPFile parent=getFile(rootId);
+			// This example implementation searches file names for the query and doesn't rank search
+			// results, so we can stop as soon as we find a sufficient number of matches.  Other
+			// implementations might use other data about files, rather than the file name, to
+			// produce a match; it might also require a network call to query a remote server.
+
+			// Iterate through all files in the file structure under the root until we reach the
+			// desired number of matches.
+			final LinkedList<FTPFile> pending = new LinkedList<FTPFile>();
+
+			// Start by adding the parent to the list of files to be processed
+			pending.add(parent);
+
+			// Do while we still have unexamined files, and fewer than the max search results
+			while(!pending.isEmpty()&&result.getCount()<MAX_SEARCH_RESULTS)
 			{
-                // If it's a directory, add all its children to the unprocessed list
-                try
+				// Take a file from the list of unprocessed files
+				final FTPFile file=pending.removeFirst();
+				if(file.isDirectory())
 				{
-					Collections.addAll(pending, file.listFiles());
+					// If it's a directory, add all its children to the unprocessed list
+					Collections.addAll(pending,file.listFiles());
 				}
-				catch (IOException e)
+				else
 				{
-					String msg="Error searching files";
-					Log.e(MainActivity.LOG_TAG,msg,e);
-					throw new FileNotFoundException(msg);
+					// If it's a file and it matches, add it to the result cursor.
+					if(file.getName().toLowerCase().contains(query))
+					{
+						putFileInfo(result.newRow(),file);
+					}
 				}
-            }
-			else
-			{
-                // If it's a file and it matches, add it to the result cursor.
-                if(file.getName().toLowerCase().contains(query))
-				{
-                    putFileInfo(result.newRow(),file);
-                }
-            }
-        }
-        return result;
+			}
+			return result;
+		}
+		catch(Exception e)
+		{
+			String msg="Error searching "+query;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
     }
 	@Override
     public String createDocument(String documentId,String mimeType,String displayName)throws FileNotFoundException
 	{
-        Log.i(MainActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
-        FTPFile parent=getFile(documentId);
-		FTPFile[]files=parent.listFiles();
-        FTPFile remoteFile=new FTPFile(parent,displayName);
 		try
 		{
-			boolean loop=false;
-			do
+			Log.i(MainActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
+			FTPFile parent=getFile(documentId);
+			FTPFile remoteFile;
+			while(true)
 			{
-				//TODO: Implement this method
-			}while(loop);
+				remoteFile=new FTPFile(parent,displayName);
+				if(remoteFile.exist())displayName+="2";
+				else break;
+			}
+			if(Document.MIME_TYPE_DIR.equals(mimeType))remoteFile.mkdir();
+			else remoteFile.createNewFile();
+			return getDocumentId(remoteFile);
         }
-		catch(IOException e)
+		catch(Exception e)
 		{
-            throw new FileNotFoundException("Failed to create document with name "+displayName +" and documentId "+documentId);
-        }
-        return getDocumentId(remoteFile);
-    }
-    // END_INCLUDE(create_document)
-
-    // BEGIN_INCLUDE(delete_document)
-    @Override
-    public void deleteDocument(String documentId) throws FileNotFoundException {
-        Log.v(TAG, "deleteDocument");
-        File file = getFileForDocId(documentId);
-        if (file.delete()) {
-            Log.i(TAG, "Deleted file with id " + documentId);
-        } else {
-            throw new FileNotFoundException("Failed to delete document with id " + documentId);
+			String msg="Failed to create document with name "+displayName+" and documentId "+documentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
         }
     }
-    // END_INCLUDE(delete_document)
-
-
     @Override
-    public String getDocumentType(String documentId) throws FileNotFoundException {
-        File file = getFileForDocId(documentId);
-        return getTypeForFile(file);
+    public void deleteDocument(String documentId)throws FileNotFoundException
+	{
+        try
+		{
+			Log.i(MainActivity.LOG_TAG,"Delete document: documentId="+documentId);
+			FTPFile file=getFile(documentId);
+			file.delete();
+		}
+		catch(Exception e)
+		{
+			String msg="Error deleting "+documentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+    }
+    @Override
+    public String getDocumentType(String documentId)throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(MainActivity.LOG_TAG,"Get document type: documentId="+documentId);
+        	FTPFile file=getFile(documentId);
+        	return file.getMimeType();
+		}
+		catch(Exception e)
+		{
+			String msg="Error getting type of "+documentId;
+			Log.e(MainActivity.LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
     }
 	private static String getRoot(String documentId)
 	{
@@ -270,7 +293,9 @@ public class FTPProvider extends DocumentsProvider
 	}
 	private static String getPath(String documentId)
 	{
-		return documentId.substring(documentId.indexOf("/")+1);
+		int start=documentId.indexOf("/");
+		if(start==-1)return"";
+		else return documentId.substring(start+1);
 	}
 	private static final String[]resolveDocumentProjection(String[]projection)
 	{

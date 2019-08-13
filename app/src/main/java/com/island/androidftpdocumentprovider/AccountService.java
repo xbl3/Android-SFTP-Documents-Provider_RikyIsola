@@ -31,47 +31,46 @@ public class AccountService extends Service
 			super(context);
 		}
 		@Override
-		public Bundle editProperties(AccountAuthenticatorResponse p1,String p2)
+		public Bundle editProperties(AccountAuthenticatorResponse response,String accountType)
 		{
+			Log.i(MainActivity.LOG_TAG,"Edit account properties: response="+response+" accountType="+accountType);
 			throw new UnsupportedOperationException();
 		}
-
 		@Override
 		public Bundle addAccount(AccountAuthenticatorResponse response,String accountType,String authTokenType,String[]requiredFeatures,Bundle options)throws NetworkErrorException
 		{
 			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" accountType="+accountType+" authTokenType="+authTokenType+" requiredFeatures="+Arrays.toString(requiredFeatures)+" options="+options);
 			return null;
 		}
-
 		@Override
-		public Bundle confirmCredentials(AccountAuthenticatorResponse p1,Account p2,Bundle p3) throws NetworkErrorException
+		public Bundle confirmCredentials(AccountAuthenticatorResponse response,Account account,Bundle options)throws NetworkErrorException
 		{
+			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" options="+options);
 			throw new UnsupportedOperationException();
 		}
-
 		@Override
-		public Bundle getAuthToken(AccountAuthenticatorResponse p1,Account p2,String p3,Bundle p4) throws NetworkErrorException
+		public Bundle getAuthToken(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)throws NetworkErrorException
 		{
+			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" authTokenType="+authTokenType+" options="+options);
 			throw new UnsupportedOperationException();
 		}
-
 		@Override
-		public String getAuthTokenLabel(String p1)
+		public String getAuthTokenLabel(String authTokenType)
 		{
+			Log.i(MainActivity.LOG_TAG,"Add account: authTokenType="+authTokenType);
 			throw new UnsupportedOperationException();
 		}
-
 		@Override
-		public Bundle updateCredentials(AccountAuthenticatorResponse p1,Account p2,String p3,Bundle p4) throws NetworkErrorException
+		public Bundle updateCredentials(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options) throws NetworkErrorException
 		{
+			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" authTokenType="+authTokenType+" options="+options);
 			throw new UnsupportedOperationException();
 		}
-
 		@Override
-		public Bundle hasFeatures(AccountAuthenticatorResponse p1,Account p2,String[] p3) throws NetworkErrorException
+		public Bundle hasFeatures(AccountAuthenticatorResponse response,Account account,String[]features)throws NetworkErrorException
 		{
+			Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" account="+account+" features="+Arrays.toString(features));
 			throw new UnsupportedOperationException();
 		}
-		
 	}
 }

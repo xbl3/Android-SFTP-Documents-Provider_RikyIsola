@@ -19,8 +19,9 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 		switchView.setOnCheckedChangeListener(this);
 	}
 	@Override
-	public void onCheckedChanged(CompoundButton view, boolean checked)
+	public void onCheckedChanged(CompoundButton view,boolean checked)
 	{
+		Log.i(MainActivity.LOG_TAG,"Checked changed:"+checked);
 		if(checked)
 		{
 			findViewById(R.id.credentials).setVisibility(View.GONE);
@@ -28,6 +29,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	}
 	public void confirm(View view)
 	{
+		Log.i(MainActivity.LOG_TAG,"Creating account");
 		String accountType=getIntent().getStringExtra(AccountManager.KEY_ACCOUNT_TYPE);
 		Switch anonymous=findViewById(R.id.anonymous);
 		EditText ip=findViewById(R.id.ip);
@@ -58,5 +60,6 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
         result.putExtras(data);
         setResult(RESULT_OK,result);
         finish();
+		Log.i(MainActivity.LOG_TAG,"Created account "+username);
 	}
 }

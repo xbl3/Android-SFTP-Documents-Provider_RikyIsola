@@ -10,14 +10,49 @@ import com.enterprisedt.net.ftp.*;
 import android.util.*;
 import java.util.*;
 import java.text.*;
-public class FTPProvider extends DocumentsProvider
+import android.accounts.*;
+public class FTPProvider extends DocumentsProvider implements AccountManagerCallback<Bundle>
 {
-	private static final String DEBUG_PASSWORD="anonymous";
+	private final List<String>tokens=new ArrayList<>();
 	private static final String[]DEFAULT_ROOT_PROJECTION=
 	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID};
 	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
 	{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_SIZE,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_LAST_MODIFIED,Document.COLUMN_MIME_TYPE,Document.COLUMN_FLAGS};
-	@Override public boolean onCreate(){return true;}
+	@Override
+	public boolean onCreate()
+	{
+		Log.i(MainActivity.LOG_TAG,"Documents provider created");
+		AccountManager accountManager=(AccountManager)getContext().getSystemService(Context.ACCOUNT_SERVICE);
+		Account[]accounts=accountManager.getAccountsByType(MainActivity.ACCOUNT_TYPE);
+		for(Account account:accounts)
+		{
+			accountManager.getAuthToken(account,MainActivity.TOKEN_TYPE,true,this,null);
+		}
+		return true;
+	}
+	@Override
+	public void run(AccountManagerFuture<Bundle>future)
+	{
+		Log.i(MainActivity.LOG_TAG,"Account token received");
+		try
+		{
+			Bundle bundle=future.getResult();
+			String token=bundle.getString(AccountManager.KEY_AUTHTOKEN);
+			tokens.add(token);
+		}
+		catch(AuthenticatorException e)
+		{
+			Log.e(MainActivity.LOG_TAG,"Authentication failed",e);
+		}
+		catch(android.accounts.OperationCanceledException e)
+		{
+			Log.e(MainActivity.LOG_TAG,"Authentication canceled",e);
+		}
+		catch(IOException e)
+		{
+			Log.e(MainActivity.LOG_TAG,"Network error",e);
+		}
+	}
 	@Override
 	public Cursor queryRoots(String[]projection)throws FileNotFoundException
 	{
@@ -25,8 +60,9 @@ public class FTPProvider extends DocumentsProvider
 		{
 			Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
-			for(String connection:new String[]{"127.0.0.1:8888@anonymous"})
+			for(String token:tokens)
 			{
+				String connection=getRoot(token);
 				MatrixCursor.RowBuilder row=result.newRow();
 				row.add(Root.COLUMN_ROOT_ID,connection);
 				row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
@@ -250,6 +286,18 @@ public class FTPProvider extends DocumentsProvider
 		if(start==-1)return"";
 		else return documentId.substring(start+1);
 	}
+	private String getPassword(String documentId)
+	{
+		String root=getRoot(documentId);
+		for(String token:tokens)
+		{
+			if(token.startsWith(root))
+			{
+				return getPath(token);
+			}
+		}
+		throw new NoSuchElementException("No token available for documentId "+documentId);
+	}
 	private static final String[]resolveDocumentProjection(String[]projection)
 	{
 		if(projection==null)return DEFAULT_DOCUMENT_PROJECTION;
@@ -260,12 +308,12 @@ public class FTPProvider extends DocumentsProvider
 		if(projection==null)return DEFAULT_ROOT_PROJECTION;
 		else return projection;
 	}
-	private static final FTPFile getFile(String documentId)throws IOException
+	private final FTPFile getFile(String documentId)throws IOException
 	{
 		String ip=getIp(documentId);
 		int port=getPort(documentId);
 		String user=getUser(documentId);
-		String password=DEBUG_PASSWORD;
+		String password=getPassword(documentId);
 		String path=getPath(documentId);
 		return new FTPFile(ip,port,user,password,path);
 	}

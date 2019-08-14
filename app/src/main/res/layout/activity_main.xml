@@ -1,81 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<ScrollView
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_height="match_parent"
-	android:layout_width="match_parent"
-	android:orientation="vertical">
+	android:layout_width="match_parent">
 
-	<RelativeLayout
-		android:layout_height="wrap_content"
+	<LinearLayout
+		android:layout_height="match_parent"
 		android:layout_width="match_parent"
-		android:layout_weight="1.0"
+		android:orientation="vertical"
 		android:gravity="center">
 
 		<TextView
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="IP"/>
+			android:text="This app adds to the default android file manger (SAF), FTP client abilities"
+			android:gravity="center"/>
 
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<EditText
-			android:layout_height="wrap_content"
-			android:layout_width="wrap_content"
-			android:ems="10"
-			android:hint="192.168.1.1"
-			android:id="@+id/ip"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
+		<View
+			android:background="?android:attr/dividerVertical"
+			android:layout_height="30dp"
+			android:layout_width="match_parent"/>
 
 		<TextView
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="PORT"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<EditText
-			android:layout_height="wrap_content"
-			android:layout_width="wrap_content"
-			android:ems="10"
-			android:hint="1234"
-			android:id="@+id/port"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
+			android:text="To add an FTP server you need to create a new FTP account that will appear in the android's account section, to do so click this button"
+			android:gravity="center"/>
 
 		<Button
 			android:layout_height="wrap_content"
 			android:layout_width="wrap_content"
-			android:text="Confirm"
-			android:onClick="save"/>
+			android:text="@string/add_account"
+			android:onClick="addAccount"/>
 
-	</RelativeLayout>
+		<View
+			android:background="?android:attr/dividerVertical"
+			android:layout_height="30dp"
+			android:layout_width="match_parent"/>
 
-</LinearLayout>
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceLarge"
+			android:text="To open the android file manager (SAF) you can use this button because some OEMs hide it because they don't understand its true power"
+			android:gravity="center"/>
+
+		<Button
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:text="@string/open_saf"
+			android:onClick="openSaf"/>
+
+		<View
+			android:background="?android:attr/dividerVertical"
+			android:layout_height="30dp"
+			android:layout_width="match_parent"/>
+
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceLarge"
+			android:text="If the ftp account doesn't appear in the side view, you need to force close this app because the android file manager (SAF) hasn't update its accounts yet"
+			android:gravity="center"/>
+
+		<Button
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:text="@string/open_app_settings"
+			android:onClick="openAppSettings"/>
+
+	</LinearLayout>
+
+</ScrollView>
 

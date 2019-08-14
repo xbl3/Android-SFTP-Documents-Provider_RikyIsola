@@ -15,7 +15,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="IP"/>
+			android:text="@string/ip"/>
 
 	</RelativeLayout>
 
@@ -45,7 +45,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="PORT"/>
+			android:text="@string/port"/>
 
 	</RelativeLayout>
 
@@ -75,7 +75,7 @@
 		<Switch
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:text="Anonymous:"
+			android:text="@string/anonymous"
 			android:id="@+id/anonymous"/>
 
 	</LinearLayout>
@@ -97,7 +97,7 @@
 			<TextView
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:text="USERNAME"
+				android:text="@string/username"
 				android:textAppearance="?android:attr/textAppearanceLarge"/>
 
 		</RelativeLayout>
@@ -125,7 +125,7 @@
 			<TextView
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:text="PASSWORD"
+				android:text="@string/password"
 				android:textAppearance="?android:attr/textAppearanceLarge"/>
 
 		</RelativeLayout>
@@ -155,7 +155,7 @@
 		<Button
 			android:layout_height="wrap_content"
 			android:layout_width="wrap_content"
-			android:text="Confirm"
+			android:text="@string/add_account"
 			android:onClick="confirm"/>
 
 	</RelativeLayout>

@@ -1,28 +1,40 @@
 package com.island.androidftpdocumentprovider;
 import android.app.*;
-import android.os.Bundle;
-import android.view.*;
-import android.widget.*;
 import android.content.*;
+import android.net.*;
+import android.os.*;
+import android.provider.*;
+import android.view.*;
 public class MainActivity extends Activity
 {
 	public static final String CONFIG="CONFIG";
 	public static final String IP="IP";
 	public static final String PORT="PORT";
 	public static final String LOG_TAG="FTPDocumentProvider";
+	public static final String ACCOUNT_TYPE="com.island.ftp.account";
+	public static final String TOKEN_TYPE="login";
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 	}
-	public void save(View v)
+	public void addAccount(View v)
 	{
-		EditText ip=findViewById(R.id.ip);
-		EditText port=findViewById(R.id.port);
-		SharedPreferences.Editor spe=getSharedPreferences(CONFIG,0).edit();
-		spe.putString(IP,ip.getText().toString());
-		spe.putInt(PORT,Integer.valueOf(port.getText().toString()));
-		spe.apply();
+		startActivity(new Intent(Settings.ACTION_SYNC_SETTINGS));
+	}
+	public void openAppSettings(View v)
+	{
+		String packageName=getPackageName();
+		Intent intent=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.fromParts("package",packageName,null));
+		intent.addCategory(Intent.CATEGORY_DEFAULT);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		startActivity(intent);
+	}
+	public void openSaf(View v)
+	{
+		Intent intent=new Intent();
+		intent.setComponent(new ComponentName("com.android.documentsui", "com.android.documentsui.FilesActivity"));
+		startActivity(intent);
 	}
 }

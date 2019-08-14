@@ -12,6 +12,9 @@
 	<uses-permission
 		android:name="android.permission.INTERNET"/>
 
+	<uses-permission
+		android:name="android.permission.AUTHENTICATE_ACCOUNTS"/>
+
 	<application
 		android:allowBackup="true"
 		android:icon="@drawable/ic_launcher"
@@ -35,6 +38,9 @@
 
 		</activity>
 
+		<activity
+			android:name=".AuthenticationActivity"/>
+
 		<provider
 			android:name="com.island.androidftpdocumentprovider.FTPProvider"
 			android:authorities="com.island.androidftpdocumentprovider"
@@ -50,6 +56,22 @@
 			</intent-filter>
 
 		</provider>
+
+		<service
+			android:name="com.island.androidftpdocumentprovider.AccountService">
+
+			<intent-filter>
+
+				<action
+					android:name="android.accounts.AccountAuthenticator"/>
+
+			</intent-filter>
+
+			<meta-data
+				android:name="android.accounts.AccountAuthenticator"
+				android:resource="@xml/authenticator"/>
+
+		</service>
 
 	</application>
 

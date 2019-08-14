@@ -15,13 +15,13 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 {
 	private final List<String>tokens=new ArrayList<>();
 	private static final String[]DEFAULT_ROOT_PROJECTION=
-	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID};
+	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID,Root.COLUMN_SUMMARY};
 	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
 	{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_SIZE,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_LAST_MODIFIED,Document.COLUMN_MIME_TYPE,Document.COLUMN_FLAGS};
 	@Override
 	public boolean onCreate()
 	{
-		Log.i(MainActivity.LOG_TAG,"Documents provider created");
+		Log.i(MainActivity.LOG_TAG,"Ftp documents provider created");
 		AccountManager accountManager=(AccountManager)getContext().getSystemService(Context.ACCOUNT_SERVICE);
 		Account[]accounts=accountManager.getAccountsByType(MainActivity.ACCOUNT_TYPE);
 		for(Account account:accounts)
@@ -58,7 +58,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
+			Log.i(MainActivity.LOG_TAG,"Ftp query Root: Projection="+Arrays.toString(projection));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
 			for(String token:tokens)
 			{
@@ -68,7 +68,8 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 				row.add(Root.COLUMN_DOCUMENT_ID,connection+"/");
 				row.add(Root.COLUMN_ICON,R.drawable.ic_launcher);
 				row.add(Root.COLUMN_FLAGS,Root.FLAG_SUPPORTS_CREATE);
-				row.add(Root.COLUMN_TITLE,connection);
+				row.add(Root.COLUMN_TITLE,getContext().getString(R.string.ftp));
+				row.add(Root.COLUMN_SUMMARY,connection);
 			}
 			return result;
 		}
@@ -82,12 +83,13 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	@Override
 	public Cursor queryDocument(String documentId,String[]projection)throws FileNotFoundException
 	{
-		Log.i(MainActivity.LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
-		MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 		try
 		{
+			Log.i(MainActivity.LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
+			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			FTPFile file=getFile(documentId);
 			putFileInfo(result.newRow(),file);
+			return result;
 		}
 		catch(Exception e)
 		{
@@ -95,21 +97,21 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 			Log.e(MainActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
-		return result;
 	}
 	@Override
 	public Cursor queryChildDocuments(String parentDocumentId,String[]projection,String sortOrder)throws FileNotFoundException
 	{
-		Log.i(MainActivity.LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
-		MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 		try
 		{
+			Log.i(MainActivity.LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
+			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			if(parentDocumentId.charAt(parentDocumentId.length()-1)!='/')parentDocumentId+="/";
 			FTPFile[]files=getFile(parentDocumentId).listFiles();
 			for(FTPFile file:files)
 			{
 				putFileInfo(result.newRow(),file);
 			}
+			return result;
 		}
 		catch(Exception e)
 		{
@@ -117,16 +119,15 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 			Log.e(MainActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
-		return result;
 	}
 	@Override
 	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
 	{
-		Log.i(MainActivity.LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
-		int accessMode=ParcelFileDescriptor.parseMode(mode);
-		boolean isWrite=(mode.indexOf('w')!=-1);
 		try
 		{
+			Log.i(MainActivity.LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
+			int accessMode=ParcelFileDescriptor.parseMode(mode);
+			boolean isWrite=(mode.indexOf('w')!=-1);
 			final FTPFile remoteFile=getFile(documentId);
 			final File file=new File(getContext().getExternalCacheDir(),remoteFile.getName());
 			remoteFile.download(file);

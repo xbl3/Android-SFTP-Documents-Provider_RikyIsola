@@ -8,4 +8,8 @@
     <string name="anonymous">Anonimo</string>
     <string name="open_saf">Apri l\'archivio di Android</string>
     <string name="open_app_settings">Apri le impostazioni dell\'app</string>
+	<string name="introduction">Questa app aggiunge al file manager predefinito di Android (SAF), le funzionalità di un client FTP</string>
+	<string name="add_account_instructions">Per aggiungere un server FTP è necessario creare un nuovo account FTP che verrà visualizzato nella sezione degli account di Android, per farlo fare clic su questo pulsante</string>
+	<string name="open_saf_instructions">Per aprire l\'archivio di android (SAF) puoi usare questo pulsante perché alcuni OEM lo nascondono perché non capiscono il suo vero potenziale</string>
+	<string name="bug_fix_instructions">Se l\'account ftp non viene visualizzato nella sezione laterale, è necessario cancellare tutti i dati di questa app perché il gestore di file Android (SAF) non ha ancora aggiornato gli accounts</string>
 </resources>

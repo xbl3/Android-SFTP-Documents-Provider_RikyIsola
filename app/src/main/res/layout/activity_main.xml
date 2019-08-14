@@ -14,7 +14,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="This app adds to the default android file manger (SAF), FTP client abilities"
+			android:text="@string/introduction"
 			android:gravity="center"/>
 
 		<View
@@ -26,7 +26,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="To add an FTP server you need to create a new FTP account that will appear in the android's account section, to do so click this button"
+			android:text="@string/add_account_instructions"
 			android:gravity="center"/>
 
 		<Button
@@ -44,7 +44,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="To open the android file manager (SAF) you can use this button because some OEMs hide it because they don't understand its true power"
+			android:text="@string/open_saf_instructions"
 			android:gravity="center"/>
 
 		<Button
@@ -62,7 +62,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="If the ftp account doesn't appear in the side view, you need to force close this app because the android file manager (SAF) hasn't update its accounts yet"
+			android:text="@string/bug_fix_instructions"
 			android:gravity="center"/>
 
 		<Button

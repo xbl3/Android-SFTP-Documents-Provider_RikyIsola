@@ -7,9 +7,6 @@ import android.provider.*;
 import android.view.*;
 public class MainActivity extends Activity
 {
-	public static final String CONFIG="CONFIG";
-	public static final String IP="IP";
-	public static final String PORT="PORT";
 	public static final String LOG_TAG="FTPDocumentProvider";
 	public static final String ACCOUNT_TYPE="com.island.ftp.account";
 	public static final String TOKEN_TYPE="login";

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ip">Ip</string>
+    <string name="port">Porta</string>
+    <string name="username">Utente</string>
+    <string name="password">Password</string>
+    <string name="add_account">Aggiungi account</string>
+    <string name="anonymous">Anonimo</string>
+    <string name="open_saf">Apri l\'archivio di Android</string>
+    <string name="open_app_settings">Apri le impostazioni dell\'app</string>
+</resources>

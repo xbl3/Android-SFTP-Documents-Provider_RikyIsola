@@ -51,7 +51,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 		String authToken=username+"/"+password;
 		Account account=new Account(username,accountType);
 		AccountManager accountManager=(AccountManager)getSystemService(ACCOUNT_SERVICE);
-		accountManager.addAccountExplicitly(account,password,null);
+		if(accountManager!=null)accountManager.addAccountExplicitly(account,password,null);
 		Bundle data=new Bundle();
         data.putString(AccountManager.KEY_ACCOUNT_NAME,username);
         data.putString(AccountManager.KEY_ACCOUNT_TYPE,accountType);

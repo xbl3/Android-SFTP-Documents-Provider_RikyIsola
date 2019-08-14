@@ -3,11 +3,10 @@ import android.accounts.*;
 import android.content.*;
 import android.os.*;
 import android.util.*;
-import com.island.androidftpdocumentprovider.*;
 import java.util.*;
 public class AccountAuthenticator extends AbstractAccountAuthenticator
 {
-	public AccountAuthenticator(Context context)
+	AccountAuthenticator(Context context)
 	{
 		super(context);
 		this.context=context;
@@ -20,7 +19,7 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 		return null;
 	}
 	@Override
-	public Bundle addAccount(AccountAuthenticatorResponse response,String accountType,String authTokenType,String[]requiredFeatures,Bundle options)throws NetworkErrorException
+	public Bundle addAccount(AccountAuthenticatorResponse response,String accountType,String authTokenType,String[]requiredFeatures,Bundle options)
 	{
 		Log.i(MainActivity.LOG_TAG,"Add account: response="+response+" accountType="+accountType+" authTokenType="+authTokenType+" requiredFeatures="+Arrays.toString(requiredFeatures)+" options="+options);
 		Intent intent=new Intent(context,AuthenticationActivity.class);
@@ -32,13 +31,13 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 		return bundle;
 	}
 	@Override
-	public Bundle confirmCredentials(AccountAuthenticatorResponse response,Account account,Bundle options)throws NetworkErrorException
+	public Bundle confirmCredentials(AccountAuthenticatorResponse response,Account account,Bundle options)
 	{
 		Log.i(MainActivity.LOG_TAG,"Confirm account: response="+response+" account="+account+" options="+options);
 		return null;
 	}
 	@Override
-	public Bundle getAuthToken(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)throws NetworkErrorException
+	public Bundle getAuthToken(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)
 	{
 		Log.i(MainActivity.LOG_TAG,"Get account token: response="+response+" account="+account+" authTokenType="+authTokenType+" options="+options);
 		AccountManager accountManager=AccountManager.get(context);
@@ -64,13 +63,13 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 		return"full";
 	}
 	@Override
-	public Bundle updateCredentials(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options) throws NetworkErrorException
+	public Bundle updateCredentials(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)
 	{
 		Log.i(MainActivity.LOG_TAG,"Update account: response="+response+" account="+account+" authTokenType="+authTokenType+" options="+options);
 		return null;
 	}
 	@Override
-	public Bundle hasFeatures(AccountAuthenticatorResponse response,Account account,String[]features)throws NetworkErrorException
+	public Bundle hasFeatures(AccountAuthenticatorResponse response,Account account,String[]features)
 	{
 		Log.i(MainActivity.LOG_TAG,"Account has feature: response="+response+" account="+account+" features="+Arrays.toString(features));
 		Bundle result=new Bundle();

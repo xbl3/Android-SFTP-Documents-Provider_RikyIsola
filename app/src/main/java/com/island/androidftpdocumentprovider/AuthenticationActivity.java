@@ -8,12 +8,14 @@ import android.widget.*;
 import android.widget.CompoundButton.*;
 public class AuthenticationActivity extends AccountAuthenticatorActivity implements OnCheckedChangeListener
 {
-	public static final String EXTRA_ADD_ACCOUNT="addAccount";
+	public static final String LOG_TAG="FTPDocumentProvider";
+	public static final String ACCOUNT_TYPE="com.island.ftp.account";
+	public static final String TOKEN_TYPE="login";
 	@Override
 	protected void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
-		Log.i(MainActivity.LOG_TAG,"Create authenticator activity");
+		Log.i(LOG_TAG,"Create authenticator activity");
 		setContentView(R.layout.authentication_activity);
 		Switch switchView=findViewById(R.id.anonymous);
 		switchView.setOnCheckedChangeListener(this);
@@ -21,7 +23,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	@Override
 	public void onCheckedChanged(CompoundButton view,boolean checked)
 	{
-		Log.i(MainActivity.LOG_TAG,"Checked changed:"+checked);
+		Log.i(LOG_TAG,"Checked changed:"+checked);
 		if(checked)
 		{
 			findViewById(R.id.credentials).setVisibility(View.GONE);
@@ -29,7 +31,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	}
 	public void confirm(View view)
 	{
-		Log.i(MainActivity.LOG_TAG,"Creating account");
+		Log.i(LOG_TAG,"Creating account");
 		String accountType=getIntent().getStringExtra(AccountManager.KEY_ACCOUNT_TYPE);
 		Switch anonymous=findViewById(R.id.anonymous);
 		EditText ip=findViewById(R.id.ip);
@@ -60,6 +62,6 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
         result.putExtras(data);
         setResult(RESULT_OK,result);
         finish();
-		Log.i(MainActivity.LOG_TAG,"Created account "+username);
+		Log.i(LOG_TAG,"Created account "+username);
 	}
 }

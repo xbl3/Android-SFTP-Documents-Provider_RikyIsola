@@ -182,7 +182,7 @@ public class FTPFile
 				}
 				catch(Exception e)
 				{
-					Log.e(MainActivity.LOG_TAG,"Error uploading document "+FTPFile.this.toString(),e);
+					Log.e(AuthenticationActivity.LOG_TAG,"Error uploading document "+FTPFile.this.toString(),e);
 				}
 				return null;
 			}

@@ -11,6 +11,7 @@ import android.util.*;
 import java.util.*;
 import java.text.*;
 import android.accounts.*;
+import java.net.*;
 public class FTPProvider extends DocumentsProvider implements AccountManagerCallback<Bundle>
 {
 	private final List<String>tokens=new ArrayList<>();
@@ -21,19 +22,19 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	@Override
 	public boolean onCreate()
 	{
-		Log.i(MainActivity.LOG_TAG,"Ftp documents provider created");
+		Log.i(AuthenticationActivity.LOG_TAG,"Ftp documents provider created");
 		AccountManager accountManager=(AccountManager)getContext().getSystemService(Context.ACCOUNT_SERVICE);
-		Account[]accounts=accountManager.getAccountsByType(MainActivity.ACCOUNT_TYPE);
+		Account[]accounts=accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE);
 		for(Account account:accounts)
 		{
-			accountManager.getAuthToken(account,MainActivity.TOKEN_TYPE,true,this,null);
+			accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,true,this,null);
 		}
 		return true;
 	}
 	@Override
 	public void run(AccountManagerFuture<Bundle>future)
 	{
-		Log.i(MainActivity.LOG_TAG,"Account token received");
+		Log.i(AuthenticationActivity.LOG_TAG,"Account token received");
 		try
 		{
 			Bundle bundle=future.getResult();
@@ -42,15 +43,15 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		}
 		catch(AuthenticatorException e)
 		{
-			Log.e(MainActivity.LOG_TAG,"Authentication failed",e);
+			Log.e(AuthenticationActivity.LOG_TAG,"Authentication failed",e);
 		}
 		catch(android.accounts.OperationCanceledException e)
 		{
-			Log.e(MainActivity.LOG_TAG,"Authentication canceled",e);
+			Log.e(AuthenticationActivity.LOG_TAG,"Authentication canceled",e);
 		}
 		catch(IOException e)
 		{
-			Log.e(MainActivity.LOG_TAG,"Network error",e);
+			Log.e(AuthenticationActivity.LOG_TAG,"Network error",e);
 		}
 	}
 	@Override
@@ -58,7 +59,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Ftp query Root: Projection="+Arrays.toString(projection));
+			Log.i(AuthenticationActivity.LOG_TAG,"Ftp query Root: Projection="+Arrays.toString(projection));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
 			for(String token:tokens)
 			{
@@ -76,7 +77,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error querying roots";
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -85,7 +86,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
+			Log.i(AuthenticationActivity.LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			FTPFile file=getFile(documentId);
 			putFileInfo(result.newRow(),file);
@@ -94,7 +95,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error querying child "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -103,9 +104,16 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
+			Log.i(AuthenticationActivity.LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			if(parentDocumentId.charAt(parentDocumentId.length()-1)!='/')parentDocumentId+="/";
+			if(getPath(parentDocumentId).isEmpty())
+			{
+				Socket socket=new Socket();
+				InetSocketAddress address=new InetSocketAddress(getIp(parentDocumentId),getPort(parentDocumentId));
+				socket.connect(address,5000);
+				socket.close();
+			}
 			FTPFile[]files=getFile(parentDocumentId).listFiles();
 			for(FTPFile file:files)
 			{
@@ -116,7 +124,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error querying childs of "+parentDocumentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -125,7 +133,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
+			Log.i(AuthenticationActivity.LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
 			int accessMode=ParcelFileDescriptor.parseMode(mode);
 			boolean isWrite=(mode.indexOf('w')!=-1);
 			final FTPFile remoteFile=getFile(documentId);
@@ -150,7 +158,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error opening document "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -159,7 +167,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
+			Log.i(AuthenticationActivity.LOG_TAG,"Create document: documentId="+documentId+" displayName"+displayName);
 			FTPFile parent=getFile(documentId);
 			FTPFile remoteFile=new FTPFile(parent,displayName);
 			if(Document.MIME_TYPE_DIR.equals(mimeType))remoteFile.mkdir();
@@ -169,7 +177,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Failed to create document with name "+displayName+" and documentId "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
         }
     }
@@ -178,14 +186,14 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
         try
 		{
-			Log.i(MainActivity.LOG_TAG,"Delete document: documentId="+documentId);
+			Log.i(AuthenticationActivity.LOG_TAG,"Delete document: documentId="+documentId);
 			FTPFile file=getFile(documentId);
 			file.delete();
 		}
 		catch(Exception e)
 		{
 			String msg="Error deleting "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
     }
@@ -194,14 +202,14 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Get document type: documentId="+documentId);
+			Log.i(AuthenticationActivity.LOG_TAG,"Get document type: documentId="+documentId);
         	FTPFile file=getFile(documentId);
         	return file.getMimeType();
 		}
 		catch(Exception e)
 		{
 			String msg="Error getting type of "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
     }
@@ -211,7 +219,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Rename document: documentId="+documentId+" displayName="+displayName);
+			Log.i(AuthenticationActivity.LOG_TAG,"Rename document: documentId="+documentId+" displayName="+displayName);
 			FTPFile source=getFile(documentId);
 			FTPFile parent=source.getParentFile();
 			FTPFile destination=new FTPFile(parent,displayName,source.lastModified(),source.getSize(),source.isDirectory());
@@ -221,7 +229,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error renaming document "+documentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -230,7 +238,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" sourceParentDocumentId="+sourceParentDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
+			Log.i(AuthenticationActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" sourceParentDocumentId="+sourceParentDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
 			FTPFile source=getFile(sourceDocumentId);
 			FTPFile parent=getFile(targetParentDocumentId);
 			FTPFile destination=new FTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
@@ -240,7 +248,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error moving document "+sourceDocumentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}
@@ -249,7 +257,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	{
 		try
 		{
-			Log.i(MainActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
+			Log.i(AuthenticationActivity.LOG_TAG,"Move document: sourceDocumentId="+sourceDocumentId+" tergatParentDocumentId="+targetParentDocumentId);
 			FTPFile source=getFile(sourceDocumentId);
 			FTPFile parent=getFile(targetParentDocumentId);
 			FTPFile destination=new FTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
@@ -259,7 +267,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		catch(Exception e)
 		{
 			String msg="Error moving document "+sourceDocumentId;
-			Log.e(MainActivity.LOG_TAG,msg,e);
+			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
 	}

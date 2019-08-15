@@ -9,18 +9,18 @@ public class AccountService extends Service
 	@Override
 	public IBinder onBind(Intent intent)
 	{
-		Log.i(MainActivity.LOG_TAG,"Binding service");
+		Log.i(AuthenticationActivity.LOG_TAG,"Binding service");
 		return authenticator.getIBinder();
 	}
 	@Override
 	public void onCreate()
 	{
-		Log.i(MainActivity.LOG_TAG,"Service created");
+		Log.i(AuthenticationActivity.LOG_TAG,"Service created");
 		authenticator=new AccountAuthenticator(this);
 	}
 	@Override
 	public void onDestroy()
 	{
-		Log.i(MainActivity.LOG_TAG,"Service destroyed");
+		Log.i(AuthenticationActivity.LOG_TAG,"Service destroyed");
 	}
 }

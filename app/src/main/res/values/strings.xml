@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">AndroidFTPDocumentProvider</string>
+    <string name="app_name" translatable="false">FTP Documents Provider</string>
 	<string name="account_name" translatable="false">File Transfer Protocol</string>
 	<string name="ftp" translatable="false">FTP</string>
 	<string name="ip">Ip</string>

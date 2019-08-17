@@ -1,4 +1,4 @@
-package com.island.androidftpdocumentprovider;
+package com.island.androidftpdocumentsprovider;
 import android.content.*;
 import android.database.*;
 import android.os.*;

@@ -1,10 +1,10 @@
-package com.island.androidftpdocumentprovider;
+package com.island.androidftpdocumentsprovider;
 import android.os.*;
 import android.provider.*;
 import android.util.*;
 import android.webkit.*;
 import com.enterprisedt.net.ftp.*;
-import com.island.androidftpdocumentprovider.*;
+import com.island.androidftpdocumentsprovider.*;
 import java.io.*;
 import java.util.*;
 public class FTPFile

@@ -3,7 +3,6 @@ import android.os.*;
 import android.provider.*;
 import android.util.*;
 import android.webkit.*;
-import com.enterprisedt.net.ftp.*;
 import com.island.androidftpdocumentsprovider.*;
 import java.io.*;
 import java.util.*;
@@ -18,8 +17,12 @@ public class FTPFile
 	private final int port;
 	private final String user;
 	private final String password;
-	public FTPFile(String ip,int port,String user,String password,String path,long lastModified,long size,boolean directory)
+	private final ChannelSftp channel;
+	public FTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path,long lastModified,long size,boolean directory) throws IOException
 	{
+		if(channel==null)channel=createChannel(ip,port,user,password);
+		this.channel=channel;
+		this.channel=channel;
 		this.path=path;
 		this.size=size;
 		this.lastModified=lastModified;
@@ -29,8 +32,10 @@ public class FTPFile
 		this.user=user;
 		this.password=password;
 	}
-	public FTPFile(String ip,int port,String user,String password,String path)throws IOException
+	public FTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path)throws IOException
 	{
+		if(channel==null)channel=createChannel(ip,port,user,password);
+		this.channel=channel;
 		this.path=path;
 		this.ip=ip;
 		this.port=port;
@@ -57,11 +62,33 @@ public class FTPFile
 	}
 	public FTPFile(FTPFile file,String path)throws IOException
 	{
-		this(file.ip,file.port,file.user,file.password,file.path+"/"+path);
+		this(file.channel,file.ip,file.port,file.user,file.password,file.path+"/"+path);
 	}
-	public FTPFile(FTPFile file,String path,long lastModified,long size,boolean directory)
+	public FTPFile(FTPFile file,String path,long lastModified,long size,boolean directory)throws IOException
 	{
-		this(file.ip,file.port,file.user,file.password,file.path+"/"+path,lastModified,size,directory);
+		this(file.channel,file.ip,file.port,file.user,file.password,file.path+"/"+path,lastModified,size,directory);
+	}
+	private static ChannelSftp createChannel(String ip,int port,String user,String password)throws IOException
+	{
+		try
+		{
+			JSch jsch=new JSch();
+			Session session=jsch.getSession(user, ip, port);
+			session.setPassword(password);
+			java.util.Properties config = new java.util.Properties();
+			config.put("StrictHostKeyChecking", "no");
+			session.setConfig(config);
+			session.setTimeout(AuthenticationActivity.TIMEOUT);
+			session.setConfig("PreferredAuthentications", "password");
+			session.connect();
+			ChannelSftp channel=(ChannelSftp)session.openChannel("sftp");
+			channel.connect();
+			return channel;
+		}
+		catch(JSchException e)
+		{
+			throw new IOException("Cannot create a sftp channel",e);
+		}
 	}
 	@Override
 	public String toString()
@@ -112,21 +139,8 @@ public class FTPFile
 		{
 			String path=this.path;
 			
-			JSch jsch=new JSch();
-			Session session=jsch.getSession(user,ip,port);
-			session.setPassword(password);
-			java.util.Properties config = new java.util.Properties();
-			//Don't do it on Production -- makes it MITM-vulnerable
-			config.put("StrictHostKeyChecking", "no");
-			session.setConfig(config);
-			session.setTimeout(5000);
-			session.setConfig("PreferredAuthentications", "password");
-			session.connect();
-			ChannelSftp channel=(ChannelSftp)session.openChannel("sftp");
-			channel.connect();
-			
-			Vector files=channel.ls(path);
-            
+			Vector files=channel.ls("/"+path);
+            List<FTPFile>list=new ArrayList<>();
 			
 			if(!path.isEmpty()&&path.charAt(path.length()-1)!='/')path+="/";
 			for(Object obj:files)
@@ -137,16 +151,9 @@ public class FTPFile
 				long modTime=attrs.getMTime();
 				long size=attrs.getSize();
 				boolean directory=attrs.isDir();
-				list[a]=new FTPFile(ip,port,user,password,filePath,modTime,size,directory);
-				scanner.close();
+				list.add(new FTPFile(channel,ip,port,user,password,filePath,modTime,size,directory));
 			}
-			channel.quit();
-            session.disconnect();
-			return list;
-		}
-		catch(JSchException e)
-		{
-			throw new IOException("Cannot list files of "+toString(),e);
+			return list.toArray(new FTPFile[list.size()]);
 		}
         catch(SftpException e)
         {
@@ -161,12 +168,9 @@ public class FTPFile
 	{
 		try
 		{
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			client.get(local.getPath(),path);
-			client.quit();
+			channel.get(path,local.getPath());
 		}
-		catch(FTPException e)
+		catch(SftpException e)
 		{
 			throw new IOException("Error downloading file "+toString(),e);
 		}
@@ -175,12 +179,9 @@ public class FTPFile
 	{
 		try
 		{
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			client.put(local.getPath(),path,false);
-			client.quit();
+			channel.put(local.getPath(),path);
 		}
-		catch(FTPException e)
+		catch(SftpException e)
 		{
 			throw new IOException("Error uploading document "+FTPFile.this.toString(),e);
 		}
@@ -223,11 +224,11 @@ public class FTPFile
 			return"application/octet-stream";
 		}
     }
-	public FTPFile getParentFile()
+	public FTPFile getParentFile()throws IOException
 	{
 		int end=path.lastIndexOf("/");
 		if(end==-1)return null;
-		else return new FTPFile(ip,port,user,password,path.substring(0,end),0,0,true);
+		else return new FTPFile(channel,ip,port,user,password,path.substring(0,end),0,0,true);
 	}
 	public boolean exist()throws IOException
 	{
@@ -241,12 +242,9 @@ public class FTPFile
 		try
 		{
 			if(exist())throw new IOException("File already exist");
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			client.put(new byte[0],path);
-			client.quit();
+			channel.put(path);
 		}
-		catch(FTPException e)
+		catch(SftpException e)
 		{
 			throw new IOException("Error creating new file "+toString(),e);
 		}
@@ -256,12 +254,9 @@ public class FTPFile
 		try
 		{
 			if(exist())throw new IOException("Directory already exist");
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			client.mkdir(path);
-			client.quit();
+			channel.mkdir(path);
 		}
-		catch(FTPException e)
+		catch(SftpException e)
 		{
 			throw new IOException("Error creating directory "+toString(),e);
 		}
@@ -271,18 +266,15 @@ public class FTPFile
 		try
 		{
 			if(!exist())throw new FileNotFoundException("File "+toString()+" not found");
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
 			if(directory)
 			{
 				FTPFile[]files=listFiles();
 				for(FTPFile file:files)file.delete();
-				client.rmdir(path);
+				channel.rmdir(path);
 			}
-			else client.delete(path);
-			client.quit();
+			else channel.rm(path);
 		}
-		catch(FTPException e)
+		catch(SftpException e)
 		{
 			throw new IOException("Error deleting file "+toString(),e);
 		}

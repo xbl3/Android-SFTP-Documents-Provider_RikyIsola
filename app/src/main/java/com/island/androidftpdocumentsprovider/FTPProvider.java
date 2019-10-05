@@ -6,7 +6,6 @@ import android.provider.*;
 import android.provider.DocumentsContract.*;
 import android.webkit.*;
 import java.io.*;
-import com.enterprisedt.net.ftp.*;
 import android.util.*;
 import java.util.*;
 import java.text.*;
@@ -111,7 +110,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 			{
 				Socket socket=new Socket();
 				InetSocketAddress address=new InetSocketAddress(getIp(parentDocumentId),getPort(parentDocumentId));
-				socket.connect(address,5000);
+				socket.connect(address,AuthenticationActivity.TIMEOUT);
 				socket.close();
 			}
 			FTPFile[]files=getFile(parentDocumentId).listFiles();
@@ -292,8 +291,8 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 	private static String getPath(String documentId)
 	{
 		int start=documentId.indexOf("/");
-		if(start==-1)return"";
-		else return documentId.substring(start+1);
+		if(start==-1)return"/";
+		else return documentId.substring(start);
 	}
 	private String getPassword(String documentId)
 	{
@@ -302,7 +301,7 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		{
 			if(token.startsWith(root))
 			{
-				return getPath(token);
+				return token.substring(documentId.indexOf("/")+1);
 			}
 		}
 		throw new NoSuchElementException("No token available for documentId "+documentId);
@@ -324,11 +323,12 @@ public class FTPProvider extends DocumentsProvider implements AccountManagerCall
 		String user=getUser(documentId);
 		String password=getPassword(documentId);
 		String path=getPath(documentId);
-		return new FTPFile(ip,port,user,password,path);
+		Log.i(AuthenticationActivity.LOG_TAG,path);
+		return new FTPFile(null,ip,port,user,password,path);
 	}
 	private static final String getDocumentId(FTPFile ftp)
 	{
-		return ftp.getIp()+":"+ftp.getPort()+"@"+ftp.getUser()+"/"+ftp.getPath();
+		return ftp.getIp()+":"+ftp.getPort()+"@"+ftp.getUser()+ftp.getPath();
 	}
 	private void putFileInfo(MatrixCursor.RowBuilder row,FTPFile file)
 	{

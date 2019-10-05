@@ -11,6 +11,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	public static final String LOG_TAG="FTPDocumentProvider";
 	public static final String ACCOUNT_TYPE="com.island.ftp.account";
 	public static final String TOKEN_TYPE="login";
+	public static final int TIMEOUT=20000;
 	@Override
 	protected void onCreate(Bundle icicle)
 	{

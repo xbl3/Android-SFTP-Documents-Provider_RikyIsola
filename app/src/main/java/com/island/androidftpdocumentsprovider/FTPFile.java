@@ -125,29 +125,32 @@ public class FTPFile
 			ChannelSftp channel=(ChannelSftp)session.openChannel("sftp");
 			channel.connect();
 			
-			Vector<ChannelSftp.LsEntry>files=channel.ls(path);
+			Vector files=channel.ls(path);
+            
 			
 			if(!path.isEmpty()&&path.charAt(path.length()-1)!='/')path+="/";
-			FTPFile[]list=new FTPFile[files.length];
-			for(int a=0;a<files.length;a++)
+			for(Object obj:files)
 			{
-				String file=files[a];
-				String fileDetail=fileDetails[a];
-				Scanner scanner=new Scanner(fileDetail);
-				for(int b=0;b<4;b++)scanner.next();
-				String filePath=path+file;
-				long modTime=client.modtime(path+file).getTime();
-				long size=scanner.nextLong();
-				boolean directory=fileDetail.charAt(0)=='d';
+                ChannelSftp.LsEntry file=(ChannelSftp.LsEntry)obj;
+				String filePath=path+file.getFilename();
+                SftpATTRS attrs=file.getAttrs();
+				long modTime=attrs.getMTime();
+				long size=attrs.getSize();
+				boolean directory=attrs.isDir();
 				list[a]=new FTPFile(ip,port,user,password,filePath,modTime,size,directory);
 				scanner.close();
 			}
-			client.quit();
+			channel.quit();
+            session.disconnect();
 			return list;
 		}
 		catch(JSchException e)
 		{
 			throw new IOException("Cannot list files of "+toString(),e);
+		}
+        catch(SftpException e)
+        {
+            throw new IOException("Cannot list files of "+toString(),e);
 		}
 	}
 	public String getName()

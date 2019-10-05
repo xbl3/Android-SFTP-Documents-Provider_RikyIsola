@@ -7,6 +7,7 @@ import com.enterprisedt.net.ftp.*;
 import com.island.androidftpdocumentsprovider.*;
 import java.io.*;
 import java.util.*;
+import com.jcraft.jsch.*;
 public class FTPFile
 {
 	private final String path;
@@ -110,10 +111,22 @@ public class FTPFile
 		try
 		{
 			String path=this.path;
-			FTPClient client=new FTPClient(ip,port);
-			client.login(user,password);
-			String[]files=client.dir(path,false);
-			String[]fileDetails=client.dir(path,true);
+			
+			JSch jsch=new JSch();
+			Session session=jsch.getSession(user,ip,port);
+			session.setPassword(password);
+			java.util.Properties config = new java.util.Properties();
+			//Don't do it on Production -- makes it MITM-vulnerable
+			config.put("StrictHostKeyChecking", "no");
+			session.setConfig(config);
+			session.setTimeout(5000);
+			session.setConfig("PreferredAuthentications", "password");
+			session.connect();
+			ChannelSftp channel=(ChannelSftp)session.openChannel("sftp");
+			channel.connect();
+			
+			Vector<ChannelSftp.LsEntry>files=channel.ls(path);
+			
 			if(!path.isEmpty()&&path.charAt(path.length()-1)!='/')path+="/";
 			FTPFile[]list=new FTPFile[files.length];
 			for(int a=0;a<files.length;a++)
@@ -132,7 +145,7 @@ public class FTPFile
 			client.quit();
 			return list;
 		}
-		catch(FTPException e)
+		catch(JSchException e)
 		{
 			throw new IOException("Cannot list files of "+toString(),e);
 		}

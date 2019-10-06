@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.island.androidftpdocumentsprovider">
+    package="com.island.androidsftpdocumentsprovider">
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS"/>
     <application
@@ -12,7 +12,7 @@
         android:theme="@style/AppTheme">
 		<activity android:name=".AuthenticationActivity"/>
 		<provider
-            android:name="com.island.androidftpdocumentsprovider.FTPProvider"
+            android:name="com.island.androidsftpdocumentsprovider.SFTPProvider"
             android:authorities="com.island.androidftpdocumentsprovider"
             android:grantUriPermissions="true"
             android:exported="true"
@@ -22,7 +22,7 @@
             </intent-filter>
         </provider>
 		<service
-            android:name="com.island.androidftpdocumentsprovider.AccountService"
+            android:name="com.island.androidsftpdocumentsprovider.AccountService"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />

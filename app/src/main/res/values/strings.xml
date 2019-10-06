@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name" translatable="false">FTP Documents Provider</string>
-	<string name="account_name" translatable="false">File Transfer Protocol</string>
-	<string name="ftp" translatable="false">FTP</string>
+    <string name="app_name" translatable="false">SFTP Documents Provider</string>
+	<string name="account_name" translatable="false">Secure File Transfer Protocol</string>
+	<string name="sftp" translatable="false">SFTP</string>
 	<string name="ip">Ip</string>
 	<string name="port">Port</string>
 	<string name="username">Username</string>

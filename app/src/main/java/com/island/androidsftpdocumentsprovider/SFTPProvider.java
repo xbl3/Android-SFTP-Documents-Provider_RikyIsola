@@ -4,11 +4,9 @@ import android.database.*;
 import android.os.*;
 import android.provider.*;
 import android.provider.DocumentsContract.*;
-import android.webkit.*;
 import java.io.*;
 import android.util.*;
 import java.util.*;
-import java.text.*;
 import android.accounts.*;
 import java.net.*;
 import com.jcraft.jsch.ChannelSftp;
@@ -24,13 +22,13 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	public boolean onCreate()
 	{
 		//Binds every sftp account to get their tokens
-		AccountManager accountManager=(AccountManager)getContext().getSystemService(Context.ACCOUNT_SERVICE);
-		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got account manager instance"));
-		Account[]accounts=accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE);
+		AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
+		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Got account manager instance");
+		Account[]accounts=Objects.requireNonNull(accountManager).getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE);
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got %s accounts",accounts.length));
 		for(Account account:accounts)
 		{
-			accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,true,this,null);
+			accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,true,this,null);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Getting account %s token",account.name));
 		}
 		Log.i(AuthenticationActivity.LOG_TAG,"Ftp documents provider created");
@@ -43,9 +41,9 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		{
 			//Add the received token to the list
 			Bundle bundle=future.getResult();
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got result bundle"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Got result bundle");
 			String token=bundle.getString(AccountManager.KEY_AUTHTOKEN);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got token from result bundle"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Got token from result bundle");
 			tokens.add(token);
 			Log.i(AuthenticationActivity.LOG_TAG,"Account token received");
 		}
@@ -70,7 +68,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			//Create a matrix for each accounts and add its info to a row
 			Log.i(AuthenticationActivity.LOG_TAG,String.format("Ftp query Root: Projection=%s",Arrays.toString(projection)));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Created result matrix"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Created result matrix");
 			
 			for(String token:tokens)
 			{
@@ -78,10 +76,9 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 				String connection=getRoot(token);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got token root: %s",connection));
 				MatrixCursor.RowBuilder row=result.newRow();
-				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Created row"));
-				String rootId=connection;
-				row.add(Root.COLUMN_ROOT_ID,rootId);
-				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added root id: %s",rootId));
+				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Created row");
+				row.add(Root.COLUMN_ROOT_ID,connection);
+				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added root id: %s",connection));
 				String documentId=connection+"/";
 				row.add(Root.COLUMN_DOCUMENT_ID,documentId);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added document id: %s",documentId));
@@ -91,7 +88,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 				int flags=Root.FLAG_SUPPORTS_CREATE;
 				row.add(Root.COLUMN_FLAGS,flags);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added flags: %s",flags));
-				String title=getContext().getString(R.string.sftp);
+				String title=Objects.requireNonNull(getContext()).getString(R.string.sftp);
 				row.add(Root.COLUMN_TITLE,title);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added title: %s",title));
 				row.add(Root.COLUMN_SUMMARY,connection);
@@ -112,15 +109,15 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		try
 		{
 			//Create a matrix and add the file info to a row
-			Log.i(AuthenticationActivity.LOG_TAG,String.format("Query Document: DocumentId=%s Projection=",documentId,Arrays.toString(projection)));
+			Log.i(AuthenticationActivity.LOG_TAG,String.format("Query Document: DocumentId=%s Projection=%s",documentId,Arrays.toString(projection)));
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Created result matrix"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Created result matrix");
 			
 			//Get the file and add its info
 			SFTPFile file=getFile(documentId);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got SFTPFile: "+file));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got SFTPFile: %s",file));
 			putFileInfo(result.newRow(),file);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added file info"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Added file info");
 			
 			return result;
 		}
@@ -137,9 +134,9 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		try
 		{
 			//Create a matrix and add each child's info to a row
-			Log.i(AuthenticationActivity.LOG_TAG,String.format("Query Child Documents: ParentDocumentId=%s Projection=%s SortOrder=%s",parentDocumentId,projection,sortOrder));
+			Log.i(AuthenticationActivity.LOG_TAG,String.format("Query Child Documents: ParentDocumentId=%s Projection=%s SortOrder=%s",parentDocumentId,Arrays.toString(projection),sortOrder));
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Created result matrix"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Created result matrix");
 			
 			//Make the path a dir
 			if(parentDocumentId.charAt(parentDocumentId.length()-1)!='/')parentDocumentId+="/";
@@ -147,12 +144,12 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			//If the document is the root check if the host online
 			if(getPath(parentDocumentId).isEmpty())
 			{
-				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("The document is root, checking if the host is online"));
+				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"The document is root, checking if the host is online");
 				Socket socket=new Socket();
 				InetSocketAddress address=new InetSocketAddress(getIp(parentDocumentId),getPort(parentDocumentId));
 				socket.connect(address,AuthenticationActivity.TIMEOUT);
 				socket.close();
-				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("The host is online"));
+				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"The host is online");
 			}
 			
 			//List the files and add their info to the rows
@@ -161,13 +158,13 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			{
 				putFileInfo(result.newRow(),file);
 			}
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added files"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Added files");
 			
 			return result;
 		}
 		catch(Exception e)
 		{
-			String msg=String.format("Error querying childs of %s",parentDocumentId);
+			String msg=String.format("Error querying children of %s",parentDocumentId);
 			Log.e(AuthenticationActivity.LOG_TAG,msg,e);
 			throw new FileNotFoundException(msg);
 		}
@@ -184,10 +181,10 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Writing mode: %s",isWrite));
 			final SFTPFile remoteFile=getFile(documentId);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Remote file is: %s",remoteFile));
-			final File file=new File(getContext().getExternalCacheDir(),remoteFile.getName());
+			final File file=new File(Objects.requireNonNull(getContext()).getExternalCacheDir(),remoteFile.getName());
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Source file is: %s",file));
 			remoteFile.download(file);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Downloaded file"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Downloaded file");
 			if(isWrite)
 			{
 				return ParcelFileDescriptor.open(file,accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
@@ -198,7 +195,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 						//Upload the changes of the file
 						Log.i(AuthenticationActivity.LOG_TAG,String.format("Closed file: %s",remoteFile));
 						remoteFile.asyncUpload(file);
-						if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Uploaded file"));
+						if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Uploaded file");
 					}
 				});
 			}
@@ -247,7 +244,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			SFTPFile file=getFile(documentId);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Remote file: %s",file));
 			file.delete();
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Deleted file"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Deleted file");
 		}
 		catch(Exception e)
 		{
@@ -290,8 +287,8 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Parent file: %s",parent));
 			SFTPFile destination=new SFTPFile(parent,displayName,source.lastModified(),source.getSize(),source.isDirectory());
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Destination file: %s",destination));
-			source.copy(destination,getContext().getExternalCacheDir(),true);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Renamed file"));
+			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),true);
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Renamed file");
 			return getDocumentId(destination);
 		}
 		catch(Exception e)
@@ -307,15 +304,15 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		try
 		{
 			//Move the selected document
-			Log.i(AuthenticationActivity.LOG_TAG,String.format("Move document: sourceDocumentId=%s sourceParentDocumentId=%s tergatParentDocumentId=",sourceDocumentId,sourceParentDocumentId,targetParentDocumentId));
+			Log.i(AuthenticationActivity.LOG_TAG,String.format("Move document: sourceDocumentId=%s sourceParentDocumentId=%s targetParentDocumentId=%s",sourceDocumentId,sourceParentDocumentId,targetParentDocumentId));
 			SFTPFile source=getFile(sourceDocumentId);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Source file: %s",source));
 			SFTPFile parent=getFile(targetParentDocumentId);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Parent file: %s",parent));
 			SFTPFile destination=new SFTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Destination file: %s",destination));
-			source.copy(destination,getContext().getExternalCacheDir(),true);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Moved file"));
+			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),true);
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Moved file");
 			return getDocumentId(destination);
 		}
 		catch(Exception e)
@@ -338,8 +335,8 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Parent file: %s",parent));
 			SFTPFile destination=new SFTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Destination file: %s",destination));
-			source.copy(destination,getContext().getExternalCacheDir(),false);
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Copied file"));
+			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),false);
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Copied file");
 			return getDocumentId(destination);
 		}
 		catch(Exception e)
@@ -421,7 +418,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param projection The projection
 	 * @return The array of the projection
 	 */
-	private static final String[]resolveDocumentProjection(String[]projection)
+	private static String[]resolveDocumentProjection(String[]projection)
 	{
 		if(projection==null)return DEFAULT_DOCUMENT_PROJECTION;
 		else return projection;
@@ -431,7 +428,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param projection The projection
 	 * @return The array of the projection
 	 */
-	private static final String[]resolveRootProjection(String[]projection)
+	private static String[]resolveRootProjection(String[]projection)
 	{
 		if(projection==null)return DEFAULT_ROOT_PROJECTION;
 		else return projection;
@@ -441,7 +438,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param documentId The document id
 	 * @return The remote file
 	 */
-	private final SFTPFile getFile(String documentId)throws IOException
+	private SFTPFile getFile(String documentId)throws IOException
 	{
 		//Get the file info from the document id
 		String ip=getIp(documentId);
@@ -453,13 +450,13 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		//Get a channel to communicate with the host
         ChannelSftp channel=channels.get(getRoot(documentId));
 		
-		//If the channel is diconnected remove it
+		//If the channel is disconnected remove it
         if(channel!=null&&!channel.isConnected())channel=null;
 		
 		//If no channel is found create a new one
         if(channel==null)
         {
-			Log.i(AuthenticationActivity.LOG_TAG,String.format("Creating new sftp session"));
+			Log.i(AuthenticationActivity.LOG_TAG,"Creating new sftp session");
             channel=SFTPFile.createChannel(ip,port,user,password);
             channels.put(getRoot(documentId),channel);
         }
@@ -471,7 +468,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param ftp The remote file
 	 * @return The document id
 	 */
-	private static final String getDocumentId(SFTPFile ftp)
+	private static String getDocumentId(SFTPFile ftp)
 	{
 		return ftp.getIp()+":"+ftp.getPort()+"@"+ftp.getUser()+ftp.getPath();
 	}
@@ -490,7 +487,8 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 			flags=Document.FLAG_SUPPORTS_WRITE;
 			row.add(Document.COLUMN_SIZE,file.getSize());
 		}
-		flags|=Document.FLAG_SUPPORTS_COPY|Document.FLAG_SUPPORTS_DELETE|Document.FLAG_SUPPORTS_MOVE|Document.FLAG_SUPPORTS_RENAME;
+		flags|=Document.FLAG_SUPPORTS_DELETE;
+		if(Build.VERSION.SDK_INT>=24)flags|=Document.FLAG_SUPPORTS_COPY|Document.FLAG_SUPPORTS_MOVE|Document.FLAG_SUPPORTS_RENAME;
 		row.add(Document.COLUMN_FLAGS,flags);
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added flags: %s",flags));
 		String mimeType=file.getMimeType();

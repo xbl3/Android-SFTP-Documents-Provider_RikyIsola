@@ -3,14 +3,13 @@ import android.os.*;
 import android.provider.*;
 import android.util.*;
 import android.webkit.*;
-import com.island.androidsftpdocumentsprovider.*;
 import java.io.*;
 import java.util.*;
 import com.jcraft.jsch.*;
 /**
  * This is the representation of a remote file
  */
-public class SFTPFile
+class SFTPFile
 {
 	private final String path;
 	private final long size;
@@ -32,9 +31,8 @@ public class SFTPFile
 	 * @param size The size of the file
 	 * @param directory If the file is a directory
 	 */
-	public SFTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path,long lastModified,long size,boolean directory)
+	private SFTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path,long lastModified,long size,boolean directory)
 	{
-		this.channel=channel;
 		this.channel=channel;
 		this.path=path;
 		this.size=size;
@@ -52,9 +50,9 @@ public class SFTPFile
 	 * @param user The user to use
 	 * @param password The password to use
 	 * @param path The remote path
-	 * @throw IOException If can't get the missing file info
+	 * @throws IOException If can't get the missing file info
 	 */
-	public SFTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path)throws IOException
+	SFTPFile(ChannelSftp channel,String ip,int port,String user,String password,String path)throws IOException
 	{
 		if(channel==null)channel=createChannel(ip,port,user,password);
 		this.channel=channel;
@@ -87,9 +85,9 @@ public class SFTPFile
 	/**
 	 * @param file The parent file
 	 * @param path The child path
-	 * @throw IOException If can't get the missing file info
+	 * @throws IOException If can't get the missing file info
 	 */
-	public SFTPFile(SFTPFile file,String path)throws IOException
+	SFTPFile(SFTPFile file,String path)throws IOException
 	{
 		this(file.channel,file.ip,file.port,file.user,file.password,file.path+"/"+path);
 	}
@@ -100,7 +98,7 @@ public class SFTPFile
 	 * @param size The size of the file
 	 * @param directory If the file is a directory
 	 */
-	public SFTPFile(SFTPFile file,String path,long lastModified,long size,boolean directory)
+	SFTPFile(SFTPFile file,String path,long lastModified,long size,boolean directory)
 	{
 		this(file.channel,file.ip,file.port,file.user,file.password,file.path+"/"+path,lastModified,size,directory);
 	}
@@ -125,7 +123,7 @@ public class SFTPFile
 	 * Return the ip of the host
 	 * @return The ip
 	 */
-	public String getIp()
+	String getIp()
 	{
 		return ip;
 	}
@@ -133,7 +131,7 @@ public class SFTPFile
 	 * Return the port of the host
 	 * @return The port
 	 */
-	public int getPort()
+	int getPort()
 	{
 		return port;
 	}
@@ -141,7 +139,7 @@ public class SFTPFile
 	 * Return the user of the remote file
 	 * @return The user
 	 */
-	public String getUser()
+	String getUser()
 	{
 		return user;
 	}
@@ -149,7 +147,7 @@ public class SFTPFile
 	 * Return the path of the file
 	 * @return The path
 	 */
-	public String getPath()
+	String getPath()
 	{
 		return path;
 	}
@@ -157,7 +155,7 @@ public class SFTPFile
 	 * Return the size of the file
 	 * @return The size
 	 */
-	public long getSize()
+	long getSize()
 	{
 		return size;
 	}
@@ -165,7 +163,7 @@ public class SFTPFile
 	 * Return the last modified time of the file
 	 * @return The last modified time
 	 */
-	public long lastModified()
+	long lastModified()
 	{
 		return lastModified;
 	}
@@ -173,16 +171,16 @@ public class SFTPFile
 	 * Return if the file is a directory
 	 * @return If the file is a directory
 	 */
-	public boolean isDirectory()
+	boolean isDirectory()
 	{
 		return directory;
 	}
 	/**
 	 * List all the files of the folder
 	 * @return The list of the files
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public SFTPFile[]listFiles()throws IOException
+	SFTPFile[]listFiles()throws IOException
 	{
 		try
 		{
@@ -208,7 +206,7 @@ public class SFTPFile
 				list.add(new SFTPFile(channel,ip,port,user,password,filePath,modTime,size,directory));
 			}
 			
-			return list.toArray(new SFTPFile[list.size()]);
+			return list.toArray(new SFTPFile[0]);
 		}
         catch(SftpException e)
         {
@@ -219,16 +217,16 @@ public class SFTPFile
 	 * Return the name of the file
 	 * @return The name of the file
 	 */
-	public String getName()
+	String getName()
 	{
 		return path.substring(path.lastIndexOf("/")+1);
 	}
 	/**
 	 * Download the remote file
 	 * @param local Where to download
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void download(File local)throws IOException
+	void download(File local)throws IOException
 	{
 		try
 		{
@@ -243,9 +241,9 @@ public class SFTPFile
 	/**
 	 * Upload to the remote file
 	 * @param local The file to upload
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void upload(File local)throws IOException
+	private void upload(File local)throws IOException
 	{
 		try
 		{
@@ -260,33 +258,17 @@ public class SFTPFile
 	/**
 	 * Upload to the remote file in another thread
 	 * @param local The file to upload
-	 * @throw IOException If the connection fails
 	 */
-	public void asyncUpload(final File local)
+	void asyncUpload(final File local)
 	{
-		new AsyncTask()
-		{
-			@Override
-			protected Object doInBackground(Object[]parameter)
-			{
-				try
-				{
-					upload(local);
-				}
-				catch(Exception e)
-				{
-					Log.e(AuthenticationActivity.LOG_TAG,String.format("Error uploading document to %s",SFTPFile.this.toString()),e);
-				}
-				return null;
-			}
-		}.execute();
+		new Upload(this,local).execute();
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Started async task to upload %s to %s",local,this));
 	}
 	/**
 	 * Return the mime type of the file
-	 * @return The mimetype of the file
+	 * @return The mime type of the file
 	 */
-	public String getMimeType()
+	String getMimeType()
 	{
         if(isDirectory())
 		{
@@ -314,7 +296,7 @@ public class SFTPFile
 	 * Return the parent of this file
 	 * @return The parent of the file
 	 */
-	public SFTPFile getParentFile()
+	SFTPFile getParentFile()
 	{
 		int end=path.lastIndexOf("/");
 		if(end==-1)return null;
@@ -323,9 +305,9 @@ public class SFTPFile
 	/**
 	 * Check if the remote file exist
 	 * @return If the file exist
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public boolean exist()throws IOException
+	private boolean exist()throws IOException
 	{
 		//If the file exist it should be in the parent child list
 		SFTPFile parent=getParentFile();
@@ -335,9 +317,9 @@ public class SFTPFile
 	}
 	/**
 	 * Create the remote file
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void createNewFile()throws IOException
+	void createNewFile()throws IOException
 	{
 		try
 		{
@@ -352,9 +334,9 @@ public class SFTPFile
 	}
 	/**
 	 * Create the remote folder
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void mkdir()throws IOException
+	void mkdir()throws IOException
 	{
 		try
 		{
@@ -369,16 +351,16 @@ public class SFTPFile
 	}
 	/**
 	 * Delete the remote file
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void delete()throws IOException
+	void delete()throws IOException
 	{
 		try
 		{
 			if(!exist())throw new FileNotFoundException(String.format("File %s not found",this));
 			if(directory)
 			{
-				//Delede all the files of the folder and then the folder itself
+				//Delete all the files of the folder and then the folder itself
 				SFTPFile[]files=listFiles();
 				for(SFTPFile file:files)file.delete();
 				channel.rmdir(path);
@@ -400,9 +382,9 @@ public class SFTPFile
 	 * @param dest The destination of the copy
 	 * @param cacheFolder A local folder to temporary save the files to copy
 	 * @param move If the copied files should be deleted
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public void copy(SFTPFile dest,File cacheFolder,boolean move)throws IOException
+	void copy(SFTPFile dest,File cacheFolder,boolean move)throws IOException
 	{
 		if(isDirectory())
 		{
@@ -421,7 +403,7 @@ public class SFTPFile
 			File cache=new File(cacheFolder,getName());
 			download(cache);
 			dest.upload(cache);
-			cache.delete();
+			if(!cache.delete())throw new IOException("Missing cache file");
 		}
 		if(move)delete();
 	}
@@ -431,9 +413,9 @@ public class SFTPFile
 	 * @param port The port to connect
 	 * @param user The user to use
 	 * @param password The password to use
-	 * @throw IOException If the connection fails
+	 * @throws IOException If the connection fails
 	 */
-	public static ChannelSftp createChannel(String ip,int port,String user,String password)throws IOException
+	static ChannelSftp createChannel(String ip,int port,String user,String password)throws IOException
 	{
 		try
 		{
@@ -449,14 +431,36 @@ public class SFTPFile
 			session.connect();
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Connected to %s:%s@%s",ip,port,user));
 			ChannelSftp channel=(ChannelSftp)session.openChannel("sftp");
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Opening channel"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Opening channel");
 			channel.connect();
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Channel opened"));
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Channel opened");
 			return channel;
 		}
 		catch(JSchException e)
 		{
 			throw new IOException("Cannot create a SFTP channel",e);
+		}
+	}
+	private static class Upload extends AsyncTask<Object,Object,Object>
+	{
+		private Upload(SFTPFile file,File local)
+		{
+			this.file=file;
+			this.local=local;
+		}
+		private final SFTPFile file;
+		private final File local;
+		@Override
+		protected Object doInBackground(Object[] parameter)
+		{
+			try
+			{
+				file.upload(local);
+			}catch(Exception e)
+			{
+				Log.e(AuthenticationActivity.LOG_TAG,String.format("Error uploading document to %s",file),e);
+			}
+			return null;
 		}
 	}
 }

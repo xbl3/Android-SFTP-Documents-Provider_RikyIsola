@@ -5,7 +5,6 @@ import android.os.*;
 import android.util.*;
 import android.view.*;
 import android.widget.*;
-import android.widget.CompoundButton.*;
 public class AuthenticationActivity extends AccountAuthenticatorActivity
 {
 	public static final String LOG_TAG="SFTPDocumentProvider";
@@ -29,7 +28,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 		EditText port=findViewById(R.id.port);
 		EditText user=findViewById(R.id.user);
 		EditText pw=findViewById(R.id.password);
-		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Read settings"));
+		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Read settings");
 		
 		//Register the account
 		String username=ip.getText()+":"+port.getText()+"@"+user.getText().toString();

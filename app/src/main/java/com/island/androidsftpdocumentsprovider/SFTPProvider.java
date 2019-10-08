@@ -13,10 +13,11 @@ import com.jcraft.jsch.ChannelSftp;
 public class SFTPProvider extends DocumentsProvider implements AccountManagerCallback<Bundle>
 {
 	private final List<String>tokens=new ArrayList<>();
+	private final Map<String,String>startDirectories=new HashMap<>();
     private final Map<String,ChannelSftp>channels=new HashMap<>();
 	private static final String[]DEFAULT_ROOT_PROJECTION=
 	{Root.COLUMN_ROOT_ID,Root.COLUMN_FLAGS,Root.COLUMN_ICON,Root.COLUMN_TITLE,Root.COLUMN_DOCUMENT_ID,Root.COLUMN_SUMMARY};
-	private static final String[] DEFAULT_DOCUMENT_PROJECTION=
+	private static final String[]DEFAULT_DOCUMENT_PROJECTION=
 	{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_SIZE,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_LAST_MODIFIED,Document.COLUMN_MIME_TYPE,Document.COLUMN_FLAGS};
 	@Override
 	public boolean onCreate()
@@ -30,8 +31,11 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		{
 			accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,true,this,null);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Getting account %s token",account.name));
+			String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
+			startDirectories.put(account.name,startDirectory);
+			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got start directory %s",startDirectory));
 		}
-		Log.i(AuthenticationActivity.LOG_TAG,"Ftp documents provider created");
+		Log.i(AuthenticationActivity.LOG_TAG,"Sftp documents provider created");
 		return true;
 	}
 	@Override
@@ -79,7 +83,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Created row");
 				row.add(Root.COLUMN_ROOT_ID,connection);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added root id: %s",connection));
-				String documentId=connection+"/";
+				String documentId=connection+startDirectories.get(connection);
 				row.add(Root.COLUMN_DOCUMENT_ID,documentId);
 				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added document id: %s",documentId));
 				int icon=R.drawable.ic_launcher;
@@ -362,7 +366,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 */
 	private static String getIp(String documentId)
 	{
-		return documentId.substring(0,documentId.indexOf(":"));
+		return documentId.substring(documentId.indexOf("@")+1,documentId.indexOf(":"));
 	}
 	/**
 	 * Get the port from the document id
@@ -371,7 +375,9 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 */
 	private static int getPort(String documentId)
 	{
-		return Integer.valueOf(documentId.substring(documentId.indexOf(":")+1,documentId.indexOf("@")));
+		int end=documentId.indexOf("/");
+		if(end==-1)end=documentId.length();
+		return Integer.valueOf(documentId.substring(documentId.indexOf(":")+1,end));
 	}
 	/**
 	 * Get the user from the document id
@@ -380,9 +386,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 */
 	private static String getUser(String documentId)
 	{
-		int end=documentId.indexOf("/");
-		if(end==-1)end=documentId.length();
-		return documentId.substring(documentId.indexOf("@")+1,end);
+		return documentId.substring(0,documentId.indexOf("@"));
 	}
 	/**
 	 * Get the path from the document id
@@ -392,7 +396,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	private static String getPath(String documentId)
 	{
 		int start=documentId.indexOf("/");
-		if(start==-1)return"/";
+		if(start==-1)return "/";
 		else return documentId.substring(start);
 	}
 	/**
@@ -408,7 +412,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 		{
 			if(token.startsWith(root))
 			{
-				return token.substring(documentId.indexOf("/")+1);
+				return token.substring(token.indexOf("/")+1);
 			}
 		}
 		throw new NoSuchElementException(String.format("No token available for documentId %s",documentId));
@@ -470,7 +474,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 */
 	private static String getDocumentId(SFTPFile ftp)
 	{
-		return ftp.getIp()+":"+ftp.getPort()+"@"+ftp.getUser()+ftp.getPath();
+		return ftp.getUser()+"@"+ftp.getIp()+":"+ftp.getPort()+ftp.getPath();
 	}
 	/**
 	 * Add the remote file info to a row

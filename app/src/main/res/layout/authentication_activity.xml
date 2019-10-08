@@ -36,36 +36,6 @@
 	</RelativeLayout>
 
 	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="@string/port"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<EditText
-			android:layout_height="wrap_content"
-			android:layout_width="wrap_content"
-			android:ems="10"
-			android:id="@+id/port"
-			android:gravity="center"
-			android:text="22"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:gravity="center"
@@ -121,6 +91,66 @@
 			android:layout_height="wrap_content"
 			android:id="@+id/password"
 			android:gravity="center"/>
+
+	</RelativeLayout>
+	
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1.0"
+		android:gravity="center">
+
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/start_directory"
+			android:textAppearance="?android:attr/textAppearanceLarge"/>
+
+	</RelativeLayout>
+
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1.0"
+		android:gravity="center">
+
+		<EditText
+			android:inputType="text"
+			android:layout_width="wrap_content"
+			android:ems="10"
+			android:layout_height="wrap_content"
+			android:id="@+id/start_directory"
+			android:gravity="center"/>
+
+	</RelativeLayout>
+	
+	<RelativeLayout
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:layout_weight="1.0"
+		android:gravity="center">
+
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceLarge"
+			android:text="@string/port"/>
+
+	</RelativeLayout>
+
+	<RelativeLayout
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:layout_weight="1.0"
+		android:gravity="center">
+
+		<EditText
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:ems="10"
+			android:id="@+id/port"
+			android:gravity="center"
+			android:text="22"/>
 
 	</RelativeLayout>
 

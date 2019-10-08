@@ -10,6 +10,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 	public static final String LOG_TAG="SFTPDocumentProvider";
 	public static final String ACCOUNT_TYPE="com.island.sftp.account";
 	public static final String TOKEN_TYPE="login";
+	public static final String START_DIRECTORY="start_directory";
 	public static final int TIMEOUT=20000;
 	@Override
 	protected void onCreate(Bundle icicle)
@@ -27,16 +28,22 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 		EditText ip=findViewById(R.id.ip);
 		EditText port=findViewById(R.id.port);
 		EditText user=findViewById(R.id.user);
+		EditText startDirectory=findViewById(R.id.start_directory);
 		EditText pw=findViewById(R.id.password);
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Read settings");
 		
 		//Register the account
-		String username=ip.getText()+":"+port.getText()+"@"+user.getText().toString();
+		String username=user.getText()+"@"+ip.getText()+":"+port.getText();
 		String password=pw.getText().toString();
 		String authToken=username+"/"+password;
 		Account account=new Account(username,accountType);
 		AccountManager accountManager=(AccountManager)getSystemService(ACCOUNT_SERVICE);
-		if(accountManager!=null)accountManager.addAccountExplicitly(account,password,null);
+		if(accountManager!=null)
+		{
+			Bundle userdata=new Bundle();
+			userdata.putString(START_DIRECTORY,startDirectory.getText().toString());
+			accountManager.addAccountExplicitly(account,password,userdata);
+		}
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added %s account %s to the account manager",accountType,username));
 		
 		//Stop the activity with the result account

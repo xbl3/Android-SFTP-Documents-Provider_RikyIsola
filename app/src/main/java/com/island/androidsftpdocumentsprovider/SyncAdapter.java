@@ -34,13 +34,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 			String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
 			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Got start directory %s",startDirectory));
 			Log.i(AuthenticationActivity.LOG_TAG,"Connecting to the server");
-			JSch jsch=new JSch();
-			jsch.getSession(SFTPProvider.getUser(token),SFTPProvider.getIp(token),SFTPProvider.getPort(token));
-			if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Connected");
-			Log.i(AuthenticationActivity.LOG_TAG,"Downloading and uploading data");
+			try(SFTP sftp=new SFTP(token))
+			{
+				File root=new File("/");
+				if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Connected");
+				Log.i(AuthenticationActivity.LOG_TAG,"Downloading and uploading data");
 			
-			Log.i(AuthenticationActivity.LOG_TAG,"Handling data conflicts");
-			Log.i(AuthenticationActivity.LOG_TAG,"Clean up");
+				Log.i(AuthenticationActivity.LOG_TAG,"Handling data conflicts");
+				Log.i(AuthenticationActivity.LOG_TAG,"Clean up");
+			}
 		}
 		catch(Exception e)
 		{

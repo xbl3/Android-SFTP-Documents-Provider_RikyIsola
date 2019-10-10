@@ -11,6 +11,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 	public static final String ACCOUNT_TYPE="com.island.sftp.account";
 	public static final String TOKEN_TYPE="login";
 	public static final String START_DIRECTORY="start_directory";
+	public static final String AUTHORITY="com.island.androidsftpdocumentsprovider";
 	public static final int TIMEOUT=20000;
 	@Override
 	protected void onCreate(Bundle icicle)
@@ -43,6 +44,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 			Bundle userdata=new Bundle();
 			userdata.putString(START_DIRECTORY,startDirectory.getText().toString());
 			accountManager.addAccountExplicitly(account,password,userdata);
+			ContentResolver.setSyncAutomatically(account,AUTHORITY,true);
 		}
 		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added %s account %s to the account manager",accountType,username));
 		

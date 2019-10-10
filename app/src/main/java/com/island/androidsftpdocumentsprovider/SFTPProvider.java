@@ -364,7 +364,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param documentId The document id
 	 * @return The ip
 	 */
-	private static String getIp(String documentId)
+	static String getIp(String documentId)
 	{
 		return documentId.substring(documentId.indexOf("@")+1,documentId.indexOf(":"));
 	}
@@ -373,7 +373,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param documentId The document id
 	 * @return The port
 	 */
-	private static int getPort(String documentId)
+	static int getPort(String documentId)
 	{
 		int end=documentId.indexOf("/");
 		if(end==-1)end=documentId.length();
@@ -384,7 +384,7 @@ public class SFTPProvider extends DocumentsProvider implements AccountManagerCal
 	 * @param documentId The document id
 	 * @return The user
 	 */
-	private static String getUser(String documentId)
+	static String getUser(String documentId)
 	{
 		return documentId.substring(0,documentId.indexOf("@"));
 	}

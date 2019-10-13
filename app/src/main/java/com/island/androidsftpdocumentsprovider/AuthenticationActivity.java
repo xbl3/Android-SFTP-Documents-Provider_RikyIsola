@@ -7,7 +7,6 @@ import android.view.*;
 import android.widget.*;
 public class AuthenticationActivity extends AccountAuthenticatorActivity
 {
-	public static final String LOG_TAG="SFTPDocumentProvider";
 	public static final String ACCOUNT_TYPE="com.island.sftp.account";
 	public static final String TOKEN_TYPE="login";
 	public static final String START_DIRECTORY="start_directory";
@@ -18,20 +17,20 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 	{
 		super.onCreate(icicle);
 		//Set the layout
-		Log.i(LOG_TAG,"Create authenticator activity");
+		Log.i("Create authenticator activity");
 		setContentView(R.layout.authentication_activity);
 	}
 	public void confirm(View view)
 	{
 		//Read the settings
-		Log.i(LOG_TAG,"Creating account");
+		Log.i("Creating account");
 		String accountType=getIntent().getStringExtra(AccountManager.KEY_ACCOUNT_TYPE);
 		EditText ip=findViewById(R.id.ip);
 		EditText port=findViewById(R.id.port);
 		EditText user=findViewById(R.id.user);
 		EditText startDirectory=findViewById(R.id.start_directory);
 		EditText pw=findViewById(R.id.password);
-		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,"Read settings");
+		Log.d("Read settings");
 		
 		//Register the account
 		String username=user.getText()+"@"+ip.getText()+":"+port.getText();
@@ -46,7 +45,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 			accountManager.addAccountExplicitly(account,password,userdata);
 			ContentResolver.setSyncAutomatically(account,AUTHORITY,true);
 		}
-		if(BuildConfig.DEBUG)Log.d(AuthenticationActivity.LOG_TAG,String.format("Added %s account %s to the account manager",accountType,username));
+		Log.d(String.format("Added %s account %s to the account manager",accountType,username));
 		
 		//Stop the activity with the result account
 		Bundle data=new Bundle();
@@ -57,6 +56,6 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
         result.putExtras(data);
         setResult(RESULT_OK,result);
         finish();
-		Log.i(LOG_TAG,"Created account "+username);
+		Log.i("Created account "+username);
 	}
 }

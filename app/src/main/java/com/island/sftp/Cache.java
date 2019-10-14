@@ -14,7 +14,7 @@ public class Cache implements FileOperator
 		cache=new File(context.getExternalCacheDir(),name);
 		cache.mkdirs();
 		this.name=name;
-		logger.info(String.format("Opened cache directory %s",cache));
+		logger.fine(String.format("Opened cache directory %s",cache));
 	}
 	private File file(File file)
 	{
@@ -23,25 +23,25 @@ public class Cache implements FileOperator
 	@Override
 	public long length(File file)
 	{
-		logger.info(String.format("Getting length of %s",file(file)));
+		logger.fine(String.format("Getting length of %s",file(file)));
 		return file(file).length();
 	}
 	@Override
 	public long lastModified(File file)
 	{
-		logger.info(String.format("Getting last modified of %s",file(file)));
+		logger.fine(String.format("Getting last modified of %s",file(file)));
 		return file(file).lastModified();
 	}
 	@Override
 	public boolean isDirectory(File file)
 	{
-		logger.info(String.format("Getting if %s is directory",file(file)));
+		logger.fine(String.format("Getting if %s is directory",file(file)));
 		return file(file).isDirectory();
 	}
 	@Override
 	public File[]listFiles(File file)
 	{
-		logger.info(String.format("Listing files of %s",file(file)));
+		logger.fine(String.format("Listing files of %s",file(file)));
 		String[]names=file(file).list();
 		File[]files=new File[names.length];
 		for(int a=0;a<files.length;a++)files[a]=new File(file,names[a]);
@@ -50,7 +50,7 @@ public class Cache implements FileOperator
 	@Override
 	public void newFile(File file)throws IOException
 	{
-		logger.info(String.format("Creating file %s",file(file)));
+		logger.fine(String.format("Creating file %s",file(file)));
 		file=file(file);
 		File parent=file.getParentFile();
 		if(!parent.exists()&&parent.mkdirs())throw new IOException(String.format("Can't create folder %s",file.getParentFile()));
@@ -59,7 +59,7 @@ public class Cache implements FileOperator
 	@Override
 	public void write(File file,InputStream input)throws IOException
 	{
-		logger.info(String.format("Writing file %s",file(file)));
+		logger.fine(String.format("Writing file %s",file(file)));
 		OutputStream out=new BufferedOutputStream(new FileOutputStream(file(file)));
 		while(true)
 		{
@@ -73,13 +73,13 @@ public class Cache implements FileOperator
 	@Override
 	public void delete(File file)throws IOException
 	{
-		logger.info(String.format("Deleting file %s",file(file)));
+		logger.fine(String.format("Deleting file %s",file(file)));
 		if(!file(file).delete())throw new IOException(String.format("Can't delete file %s",file(file)));
 	}
 	@Override
 	public InputStream read(File file)throws IOException
 	{
-		logger.info(String.format("Reading file %s",file(file)));
+		logger.fine(String.format("Reading file %s",file(file)));
 		return new BufferedInputStream(new FileInputStream(file(file)));
 	}
 }

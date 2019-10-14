@@ -40,11 +40,11 @@ public class SFTP implements Closeable,FileOperator
 			session.setConfig("PreferredAuthentications","password");
 			logger.fine(String.format("Connecting to %s@%s:%s",user,ip,port));
 			session.connect();
-			logger.info(String.format("Connected to %s@%s:%s",user,ip,port));
+			logger.fine(String.format("Connected to %s@%s:%s",user,ip,port));
 			channel=(ChannelSftp)session.openChannel("sftp");
-			logger.info("Opening channel");
+			logger.fine("Opening channel");
 			channel.connect();
-			logger.info("Channel opened");
+			logger.fine("Channel opened");
 		}
 		catch(JSchException e)
 		{
@@ -54,32 +54,32 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public long lastModified(File file)throws IOException
 	{
-		logger.info(String.format("Getting last modified of %s",file(file)));
+		logger.fine(String.format("Getting last modified of %s",file(file)));
 		return getValue(lastModified,file);
 	}
 	@Override
 	public long length(File file)throws IOException
 	{
-		logger.info(String.format("Getting length of %s",file(file)));
+		logger.fine(String.format("Getting length of %s",file(file)));
 		return getValue(size,file);
 	}
 	@Override
 	public boolean isDirectory(File file)throws IOException
 	{
-		logger.info(String.format("Getting if %s is directory",file(file)));
+		logger.fine(String.format("Getting if %s is directory",file(file)));
 		return getValue(directory,file);
 	}
 	@Override
 	public void close()
 	{
-		logger.info(String.format("Closing sftp connection"));
+		logger.fine(String.format("Closing sftp connection"));
 		channel.quit();
 		session.disconnect();
 	}
 	@Override
 	public File[]listFiles(File file)throws IOException
 	{
-		logger.info(String.format("Listing files of %s",file(file)));
+		logger.fine(String.format("Listing files of %s",file(file)));
 		try
 		{
 			Vector vector=channel.ls(new File(initialPath,file.getPath()).getPath());
@@ -105,7 +105,7 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public void newFile(File file)throws IOException
 	{
-		logger.info(String.format("Creating file %s",file(file)));
+		logger.fine(String.format("Creating file %s",file(file)));
 		try
 		{
 			channel.put(file(file)).close();
@@ -118,7 +118,7 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public void write(File file,InputStream input)throws IOException
 	{
-		logger.info(String.format("Writing file %s",file(file)));
+		logger.fine(String.format("Writing file %s",file(file)));
 		try
 		{
 			OutputStream out=new BufferedOutputStream(channel.put(file(file)));
@@ -139,7 +139,7 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public void delete(File file)throws IOException
 	{
-		logger.info(String.format("Deleting file %s",file(file)));
+		logger.fine(String.format("Deleting file %s",file(file)));
 		try
 		{
 			if(isDirectory(file))channel.rmdir(file(file));
@@ -153,7 +153,7 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public InputStream read(File file)throws IOException
 	{
-		logger.info(String.format("Reading file %s",file(file)));
+		logger.fine(String.format("Reading file %s",file(file)));
 		try
 		{
 			return new BufferedInputStream(channel.get(file(file)));

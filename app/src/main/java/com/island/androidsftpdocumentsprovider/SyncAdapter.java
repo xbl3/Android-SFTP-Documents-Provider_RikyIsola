@@ -36,7 +36,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 			String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
 			Log.d(String.format("Got start directory %s",startDirectory));
 			Log.i("Connecting to the server");
-			try(SFTP sftp=new SFTP(token,AuthenticationActivity.TIMEOUT,null))
+			try(SFTP sftp=new SFTP(token,AuthenticationActivity.TIMEOUT,Log.logger))
 			{
 				File root=new File("/");
 				Log.d("Connected");

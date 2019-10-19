@@ -10,4 +10,6 @@ public interface FileOperator
 	void write(File file,InputStream input)throws IOException;
 	InputStream read(File file)throws IOException;
 	void newFile(File file)throws IOException;
+	void setLastModified(File file,long lastModified)throws IOException;
+	void mkdirs(File file)throws IOException;
 }

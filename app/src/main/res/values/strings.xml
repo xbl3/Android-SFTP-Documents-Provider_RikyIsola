@@ -9,4 +9,5 @@
 	<string name="start_directory">Start directory</string>
 	<string name="add_account">Add account</string>
 	<string name="anonymous">Anonymous</string>
+	<string name="include_hidden_folders">Include hidden folders</string>
 </resources>

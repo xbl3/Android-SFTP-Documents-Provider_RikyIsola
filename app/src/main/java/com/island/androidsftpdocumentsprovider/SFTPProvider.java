@@ -9,7 +9,8 @@ import android.util.*;
 import com.island.sftp.*;
 import java.io.*;
 import java.util.*;
-import java.util.logging.*;
+import android.graphics.*;
+import android.content.res.*;
 public class SFTPProvider extends DocumentsProvider
 {
 	private final List<Cache>tokens=new ArrayList<>();
@@ -27,7 +28,7 @@ public class SFTPProvider extends DocumentsProvider
 		Log.d(String.format("Got %s accounts",accounts.length));
 		for(Account account:accounts)
 		{
-			tokens.add(new Cache(getContext(),account.name,Log.logger));
+			tokens.add(new Cache(getContext().getExternalCacheDir(),account.name,Log.logger));
 			Log.d(String.format("Got account %s cache",account.name));
 		}
 		Log.i("Sftp documents provider created");
@@ -39,7 +40,7 @@ public class SFTPProvider extends DocumentsProvider
 		try
 		{
 			//Create a matrix for each accounts and add its info to a row
-			Log.i(String.format("Ftp query Root: Projection=%s",Arrays.toString(projection)));
+			Log.i(String.format("Sftp query Root: Projection=%s",Arrays.toString(projection)));
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
 			Log.d("Created result matrix");
 			
@@ -58,7 +59,7 @@ public class SFTPProvider extends DocumentsProvider
 				int icon=R.drawable.ic_launcher;
 				row.add(Root.COLUMN_ICON,icon);
 				Log.d(String.format("Added icon: %s",icon));
-				int flags=Root.FLAG_SUPPORTS_CREATE;
+				int flags=Root.FLAG_SUPPORTS_CREATE|Root.FLAG_SUPPORTS_SEARCH|Root.FLAG_SUPPORTS_RECENTS;
 				row.add(Root.COLUMN_FLAGS,flags);
 				Log.d(String.format("Added flags: %s",flags));
 				String title=Objects.requireNonNull(getContext()).getString(R.string.sftp);
@@ -76,6 +77,7 @@ public class SFTPProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
 	}
+	
 	@Override
 	public Cursor queryDocument(String documentId,String[]projection)throws FileNotFoundException
 	{
@@ -133,38 +135,52 @@ public class SFTPProvider extends DocumentsProvider
 		}
 	}
 	@Override
-	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
+	public ParcelFileDescriptor openDocument(final String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
 	{
-		/*try
+		try
 		{
 			//Open the selected document by downloading it
 			Log.i(String.format("Open Document: DocumentId=%s mode=%s signal=%s",documentId,mode,signal));
 			int accessMode=ParcelFileDescriptor.parseMode(mode);
 			boolean isWrite=(mode.indexOf('w')!=-1);
 			Log.d(String.format("Writing mode: %s",isWrite));
-			final SFTPFile remoteFile=getFile(documentId);
-			Log.d(String.format("Remote file is: %s",remoteFile));
-			final File file=new File(Objects.requireNonNull(getContext()).getExternalCacheDir(),remoteFile.getName());
-			Log.d(String.format("Source file is: %s",file));
-			remoteFile.download(file);
-			Log.d("Downloaded file");
+			final File file=getFile(documentId);
+			Log.d(String.format("Remote file is: %s",file));
+			final Cache cache=getCache(documentId);
+			if(cache.length(file)==0)
+			{
+				try(SFTP sftp=getSFTP(documentId))
+				{
+					FileOperation.copy(sftp,cache,file);
+					Log.d("Downloaded file");
+				}
+			}
 			if(isWrite)
 			{
-				return ParcelFileDescriptor.open(file,accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
-				{
-					@Override
-					public void onClose(IOException exception)
+				return ParcelFileDescriptor.open(cache.file(file),accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
 					{
-						//Upload the changes of the file
-						Log.i(String.format("Closed file: %s",remoteFile));
-						remoteFile.asyncUpload(file);
-						Log.d("Uploaded file");
+						@Override
+						public void onClose(IOException exception)
+						{
+							try
+							{
+								if(exception!=null)throw exception;
+								try(SFTP sftp=getSFTP(documentId))
+								{
+									FileOperation.asyncCopy(cache,sftp,file);
+								}
+							}
+							catch(IOException e)
+							{
+								Log.e("Error closing file",e);
+							}
+						}
 					}
-				});
+				);
 			}
 			else
 			{
-				return ParcelFileDescriptor.open(file,accessMode);
+				return ParcelFileDescriptor.open(cache.file(file),accessMode);
 			}
 		}
 		catch(Exception e)
@@ -172,43 +188,58 @@ public class SFTPProvider extends DocumentsProvider
 			String msg=String.format("Error opening document %s",documentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-		}*/
-		return null;
+		}
 	}
 	@Override
     public String createDocument(String documentId,String mimeType,String displayName)throws FileNotFoundException
 	{
-		/*try
+		try
 		{
 			//Create a document on the selected path
 			Log.i(String.format("Create document: documentId=%s displayName=%s",documentId,displayName));
-			SFTPFile parent=getFile(documentId);
+			File parent=getFile(documentId);
 			Log.d(String.format("Folder: %s",parent));
-			SFTPFile remoteFile=new SFTPFile(parent,displayName);
-			Log.d(String.format("Remote file: %s",remoteFile));
-			if(Document.MIME_TYPE_DIR.equals(mimeType))remoteFile.mkdir();
-			else remoteFile.createNewFile();
+			File file=new File(parent,displayName);
+			Log.d(String.format("Remote file: %s",file));
+			Cache cache=getCache(documentId);
+			try(SFTP sftp=getSFTP(documentId))
+			{
+				if(Document.MIME_TYPE_DIR.equals(mimeType))
+				{
+					sftp.mkdirs(file);
+					cache.mkdirs(file);
+				}
+				else
+				{
+					sftp.newFile(file);
+					cache.newFile(file);
+				}
+			}
 			Log.d(String.format("Create %s",mimeType));
-			return getDocumentId(remoteFile);
+			return getDocumentId(getCache(documentId),file);
         }
 		catch(Exception e)
 		{
 			String msg=String.format("Failed to create document with name %s and documentId %s",displayName,documentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-        }*/
-		return null;
+        }
     }
     @Override
     public void deleteDocument(String documentId)throws FileNotFoundException
 	{
-        /*try
+        try
 		{
 			//Delete the selected document
 			Log.i("Delete document: documentId="+documentId);
-			SFTPFile file=getFile(documentId);
+			File file=getFile(documentId);
 			Log.d(String.format("Remote file: %s",file));
-			file.delete();
+			Cache cache=getCache(documentId);
+			try(SFTP sftp=getSFTP(documentId))
+			{
+				sftp.delete(file);
+				cache.delete(file);
+			}
 			Log.d("Deleted file");
 		}
 		catch(Exception e)
@@ -216,7 +247,7 @@ public class SFTPProvider extends DocumentsProvider
 			String msg=String.format("Error deleting %s",documentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-		}*/
+		}
     }
     @Override
     public String getDocumentType(String documentId)throws FileNotFoundException
@@ -224,7 +255,7 @@ public class SFTPProvider extends DocumentsProvider
 		try
 		{
 			//Get the mime type
-			Log.i("Get document type: documentId="+documentId);
+			Log.i(String.format("Get document type: documentId=%s",documentId));
         	File file=getFile(documentId);
 			Log.d(String.format("Remote file: %s",file));
 			String mimeType=SyncAdapter.getMimeType(file,getCache(documentId));
@@ -242,78 +273,160 @@ public class SFTPProvider extends DocumentsProvider
 	@Override
 	public String renameDocument(String documentId,String displayName)throws FileNotFoundException
 	{
-		/*try
+		try
 		{
 			//Rename the selected document
 			Log.i(String.format("Rename document: documentId=%s displayName=%s",documentId,displayName));
-			SFTPFile source=getFile(documentId);
+			File source=getFile(documentId);
 			Log.d(String.format("Source file: %s",source));
-			SFTPFile parent=source.getParentFile();
+			File parent=source.getParentFile();
 			Log.d(String.format("Parent file: %s",parent));
-			SFTPFile destination=new SFTPFile(parent,displayName,source.lastModified(),source.getSize(),source.isDirectory());
+			File destination=new File(parent,displayName);
 			Log.d(String.format("Destination file: %s",destination));
-			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),true);
+			Cache cache=getCache(documentId);
+			try(SFTP sftp=getSFTP(documentId))
+			{
+				FileOperation.move(sftp,source,destination);
+				FileOperation.move(cache,source,destination);
+			}
 			Log.d("Renamed file");
-			return getDocumentId(destination);
+			return getDocumentId(cache,destination);
 		}
 		catch(Exception e)
 		{
 			String msg=String.format("Error renaming document %s",documentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-		}*/
-		return null;
+		}
 	}
 	@Override
-	public String moveDocument(String sourceDocumentId,String sourceParentDocumentId,String targetParentDocumentId) throws FileNotFoundException
+	public String moveDocument(String sourceDocumentId,String sourceParentDocumentId,String targetParentDocumentId)throws FileNotFoundException
 	{
-		/*try
+		try
 		{
 			//Move the selected document
 			Log.i(String.format("Move document: sourceDocumentId=%s sourceParentDocumentId=%s targetParentDocumentId=%s",sourceDocumentId,sourceParentDocumentId,targetParentDocumentId));
-			SFTPFile source=getFile(sourceDocumentId);
+			File source=getFile(sourceDocumentId);
 			Log.d(String.format("Source file: %s",source));
-			SFTPFile parent=getFile(targetParentDocumentId);
-			Log.d(String.format("Parent file: %s",parent));
-			SFTPFile destination=new SFTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
+			File destination=new File(targetParentDocumentId,source.getName());
 			Log.d(String.format("Destination file: %s",destination));
-			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),true);
-			Log.d("Moved file");
-			return getDocumentId(destination);
+			Cache cache=getCache(sourceDocumentId);
+			try(SFTP sftp=getSFTP(sourceDocumentId))
+			{
+				FileOperation.move(sftp,source,destination);
+				FileOperation.move(cache,source,destination);
+			}
+			Log.d("Renamed file");
+			return getDocumentId(cache,destination);
 		}
 		catch(Exception e)
 		{
 			String msg=String.format("Error moving document %s",sourceDocumentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-		}*/
-		return null;
+		}
 	}
 	@Override
 	public String copyDocument(String sourceDocumentId,String targetParentDocumentId) throws FileNotFoundException
 	{
-		/*try
+		try
 		{
 			//Copy the selected document
 			Log.i(String.format("Move document: sourceDocumentId=%s targetParentDocumentId=%s",sourceDocumentId,targetParentDocumentId));
-			SFTPFile source=getFile(sourceDocumentId);
+			File source=getFile(sourceDocumentId);
 			Log.d(String.format("Source file: %s",source));
-			SFTPFile parent=getFile(targetParentDocumentId);
-			Log.d(String.format("Parent file: %s",parent));
-			SFTPFile destination=new SFTPFile(parent,source.getName(),source.lastModified(),source.getSize(),source.isDirectory());
+			File destination=new File(targetParentDocumentId,source.getName());
 			Log.d(String.format("Destination file: %s",destination));
-			source.copy(destination,Objects.requireNonNull(getContext()).getExternalCacheDir(),false);
-			Log.d("Copied file");
-			return getDocumentId(destination);
+			Cache cache=getCache(sourceDocumentId);
+			try(SFTP sftp=getSFTP(sourceDocumentId))
+			{
+				FileOperation.copy(sftp,source,destination);
+				FileOperation.copy(cache,source,destination);
+			}
+			Log.d("Renamed file");
+			return getDocumentId(cache,destination);
 		}
 		catch(Exception e)
 		{
 			String msg=String.format("Error moving document %s",sourceDocumentId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
-		}*/
-		return null;
+		}
 	}
+	@Override
+	public AssetFileDescriptor openDocumentThumbnail(String documentId,Point sizeHint,CancellationSignal signal)throws FileNotFoundException
+	{
+		try
+		{
+			//Get the mime type
+			Log.i(String.format("Open document thumbnail: documentId=%s sizeHint=%s signal=%s",documentId,sizeHint,signal));
+			Cache cache=getCache(documentId);
+			File file=getFile(documentId);
+			ParcelFileDescriptor parcelFileDescriptor=ParcelFileDescriptor.open(cache.file(file),ParcelFileDescriptor.MODE_READ_ONLY);
+			AssetFileDescriptor assetFileDescriptor=new AssetFileDescriptor(parcelFileDescriptor,0,AssetFileDescriptor.UNKNOWN_LENGTH);
+			return assetFileDescriptor;
+		}
+		catch(Exception e)
+		{
+			String msg=String.format("Error getting type of %s",documentId);
+			Log.e(msg,e);
+			throw new FileNotFoundException(msg);
+		}
+	}
+	@Override
+    public Cursor queryRecentDocuments(String rootId,String[]projection)throws FileNotFoundException
+	{
+		try
+		{
+			//Create a matrix and add the file info to a row
+			Log.i(String.format("Query Document: RootId=%s Projection=%s",rootId,Arrays.toString(projection)));
+			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+			Log.d("Created result matrix");
+
+			//Get the file and add its info
+			Cache cache=getCache(rootId);
+			Queue<File>lastModifiedFiles=FileOperation.recent(cache,AuthenticationActivity.MAX_LAST_MODIFIED);
+			for(int i=0;i<Math.min(AuthenticationActivity.MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
+			{
+				File file=lastModifiedFiles.remove();
+				putFileInfo(result.newRow(),cache,file);
+			}
+			return result;
+		}
+		catch(Exception e)
+		{
+			String msg=String.format("Error querying recents of %s",rootId);
+			Log.e(msg,e);
+			throw new FileNotFoundException(msg);
+		}
+    }
+    @Override
+    public Cursor querySearchDocuments(String rootId,String query,String[]projection)throws FileNotFoundException
+	{
+        try
+		{
+			//Create a matrix and add the file info to a row
+			Log.i(String.format("Query Document: RootId=%s Query=%s Projection=%s",rootId,query,Arrays.toString(projection)));
+			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
+			Log.d("Created result matrix");
+
+			//Get the file and add its info
+			Cache cache=getCache(rootId);
+			List<File>lastModifiedFiles=FileOperation.search(cache,query,AuthenticationActivity.MAX_LAST_MODIFIED);
+			for(int i=0;i<Math.min(AuthenticationActivity.MAX_LAST_MODIFIED+1,lastModifiedFiles.size());i++)
+			{
+				File file=lastModifiedFiles.get(i);
+				putFileInfo(result.newRow(),cache,file);
+			}
+			return result;
+		}
+		catch(Exception e)
+		{
+			String msg=String.format("Error searching %s",rootId);
+			Log.e(msg,e);
+			throw new FileNotFoundException(msg);
+		}
+    }
 	/**
 	 * Get the root from the document id
 	 * @param documentId The document id
@@ -321,7 +434,9 @@ public class SFTPProvider extends DocumentsProvider
 	 */
 	private static String getRoot(String documentId)
 	{
-		return documentId.substring(0,documentId.indexOf("/"));
+		int end=documentId.indexOf("/");
+		if(end==-1)return documentId;
+		return documentId.substring(0,end);
 	}
 	/**
 	 * Resolve the document projection
@@ -371,6 +486,26 @@ public class SFTPProvider extends DocumentsProvider
 		}
 		throw new NoSuchElementException(String.format("No cache for %s found",documentId));
 	}
+	private SFTP getSFTP(String documentId)throws IOException
+	{
+		try
+		{
+			String root=getRoot(documentId);
+			AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
+			Account account=null;
+			for(Account acc:accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE))if(acc.name.equals(root))account=acc;
+			String token=accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN);
+			return new SFTP(token,AuthenticationActivity.TIMEOUT,Log.logger);
+		}
+		catch(AuthenticatorException e)
+		{
+			throw new IOException(e);
+		}
+		catch(android.accounts.OperationCanceledException e)
+		{
+			throw new IOException(e);
+		}
+	}
 	/**
 	 * Add the remote file info to a row
 	 * @param row The row to add the info
@@ -384,6 +519,7 @@ public class SFTPProvider extends DocumentsProvider
 		else
 		{
 			flags=Document.FLAG_SUPPORTS_WRITE;
+			if(SyncAdapter.getMimeType(file,cache).contains("image"))flags|=Document.FLAG_SUPPORTS_THUMBNAIL;
 			row.add(Document.COLUMN_SIZE,cache.length(file));
 		}
 		flags|=Document.FLAG_SUPPORTS_DELETE;

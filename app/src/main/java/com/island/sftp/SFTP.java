@@ -25,7 +25,6 @@ public class SFTP implements Closeable,FileOperator
 		ip=token.substring(token.indexOf("@")+1,token.indexOf(":"));
 		port=Integer.valueOf(token.substring(token.indexOf(":")+1,token.indexOf("?")));
 		password=token.substring(token.indexOf("?")+1,token.indexOf("/"));
-		initialPath=new File(token.substring(token.indexOf("/")));
 		if(logger==null)logger=Logger.getLogger("SFTP");
 		this.logger=logger;
 		JSch jsch=new JSch();
@@ -45,6 +44,14 @@ public class SFTP implements Closeable,FileOperator
 			logger.fine("Opening channel");
 			channel.connect();
 			logger.fine("Channel opened");
+			try
+			{
+				initialPath=new File(new File(channel.getHome()),token.substring(token.indexOf("/")));
+			}
+			catch(SftpException e)
+			{
+				initialPath=new File(token.substring(token.indexOf("/")));
+			}
 		}
 		catch(JSchException e)
 		{
@@ -82,7 +89,7 @@ public class SFTP implements Closeable,FileOperator
 		logger.fine(String.format("Listing files of %s",file(file)));
 		try
 		{
-			Vector vector=channel.ls(new File(initialPath,file.getPath()).getPath());
+			Vector vector=channel.ls(file(file));
 			List<File>files=new ArrayList<>(vector.size()-2);
 			for(Object obj:vector)
 			{
@@ -91,7 +98,7 @@ public class SFTP implements Closeable,FileOperator
 				File newFile=new File(file,entry.getFilename());
 				SftpATTRS attributes=entry.getAttrs();
 				files.add(newFile);
-				lastModified.put(newFile,(long)attributes.getMTime());
+				lastModified.put(newFile,attributes.getMTime()*1000L);
 				size.put(newFile,attributes.getSize());
 				directory.put(newFile,attributes.isDir());
 			}
@@ -172,5 +179,29 @@ public class SFTP implements Closeable,FileOperator
 		if(!map.containsKey(file))listFiles(file.getParentFile());
 		if(!map.containsKey(file))throw new FileNotFoundException(String.format("File %s is missing",file));
 		return map.get(file);
+	}
+	@Override
+	public void setLastModified(File file,long lastModified)throws IOException
+	{
+		try
+		{
+			channel.setMtime(file(file),(int)lastModified);
+		}
+		catch (SftpException e)
+		{
+			throw new IOException(e);
+		}
+	}
+	@Override
+	public void mkdirs(File file)throws IOException
+	{
+		try
+		{
+			channel.mkdir(file(file));
+		}
+		catch(SftpException e)
+		{
+			throw new IOException(e);
+		}
 	}
 }

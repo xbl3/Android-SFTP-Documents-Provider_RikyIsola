@@ -10,8 +10,11 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 	public static final String ACCOUNT_TYPE="com.island.sftp.account";
 	public static final String TOKEN_TYPE="login";
 	public static final String START_DIRECTORY="start_directory";
+	public static final String HIDDEN_FOLDERS="hidden_folders";
 	public static final String AUTHORITY="com.island.androidsftpdocumentsprovider";
 	public static final int TIMEOUT=20000;
+	public static final int MAX_LAST_MODIFIED=5;
+	public static final int MAX_SEARCH_RESULT=20;
 	@Override
 	protected void onCreate(Bundle icicle)
 	{
@@ -30,6 +33,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 		EditText user=findViewById(R.id.user);
 		EditText startDirectory=findViewById(R.id.start_directory);
 		EditText pw=findViewById(R.id.password);
+		Switch hiddenFolders=findViewById(R.id.hiddenfolders);
 		Log.d("Read settings");
 		
 		//Register the account
@@ -42,6 +46,7 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 		{
 			Bundle userdata=new Bundle();
 			userdata.putString(START_DIRECTORY,startDirectory.getText().toString());
+			userdata.putBoolean(HIDDEN_FOLDERS,hiddenFolders.isActivated());
 			accountManager.addAccountExplicitly(account,password,userdata);
 			ContentResolver.setSyncAutomatically(account,AUTHORITY,true);
 		}

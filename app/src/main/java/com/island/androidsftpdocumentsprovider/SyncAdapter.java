@@ -35,13 +35,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 			Log.d("Got token");
 			String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
 			Log.d(String.format("Got start directory %s",startDirectory));
+			boolean hiddenfolders=Boolean.valueOf(accountManager.getUserData(account,AuthenticationActivity.HIDDEN_FOLDERS));
+			Log.d(String.format("Sync hidden folders %s",hiddenfolders));
 			Log.i("Connecting to the server");
 			try(SFTP sftp=new SFTP(token,AuthenticationActivity.TIMEOUT,Log.logger))
 			{
 				File root=new File("/");
 				Log.d("Connected");
 				Log.i("Downloading and uploading data");
-				sync(sftp,new Cache(getContext(),account.name,Log.logger),root);
+				sync(sftp,new Cache(getContext().getExternalCacheDir(),account.name,Log.logger),root,hiddenfolders);
 				Log.i("Clean up");
 			}
 		}
@@ -51,7 +53,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 			syncResult.stats.numAuthExceptions++;
 		}
 	}
-	private static void sync(SFTP sftp,Cache cache,File folder)throws IOException
+	private static void sync(SFTP sftp,Cache cache,File folder,boolean hiddenfolders)throws IOException
 	{
 		List<File>remotes=new ArrayList<File>(Arrays.asList(sftp.listFiles(folder)));
 		List<File>locals=new ArrayList<File>(Arrays.asList(cache.listFiles(folder)));
@@ -61,25 +63,39 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 		for(File file:locals)cache.delete(file);
 		for(File file:remotes)
 		{
-			copy(sftp,cache,file);
+			copy(sftp,cache,file,hiddenfolders);
 		}
 		localsCopy.removeAll(remotes);
 		localsCopy.removeAll(locals);
-		for(File file:localsCopy)if(cache.isDirectory(file))sync(sftp,cache,file);
+		for(File file:localsCopy)if(cache.isDirectory(file))sync(sftp,cache,file,hiddenfolders);
 	}
-	private static void copy(SFTP sftp,Cache cache,File file)throws IOException
+	private static void copy(SFTP sftp,Cache cache,File file,boolean hiddenfolders)
 	{
-		if(sftp.isDirectory(file))
+		try
 		{
-			for(File child:sftp.listFiles(file))copy(sftp,cache,child);
-		}
-		else
-		{
-			cache.newFile(file);
-			if(getMimeType(file,sftp).startsWith("image/"))
+			if(file.getName().startsWith(".")&&!hiddenfolders)
 			{
-				cache.write(file,sftp.read(file));
+				Log.d(String.format("Skipping %s",file));
+				return;
 			}
+			Log.d(String.format("Copying %s",file));
+			if(sftp.isDirectory(file))
+			{
+				for(File child:sftp.listFiles(file))copy(sftp,cache,child,hiddenfolders);
+			}
+			else
+			{
+				cache.newFile(file);
+				if(getMimeType(file,sftp).startsWith("image/"))
+				{
+					FileOperation.copy(sftp,cache,file);
+				}
+				cache.setLastModified(file,sftp.lastModified(file));
+			}
+		}
+		catch(IOException e)
+		{
+			Log.e(String.format("Error copying %s",file),e);
 		}
 	}
 	/**

@@ -7,4 +7,5 @@
     <string name="add_account">Aggiungi account</string>
     <string name="anonymous">Anonimo</string>
 	<string name="start_directory">Cartella di partenza</string>
+	<string name="include_hidden_folders">Includi le cartelle nascoste</string>
 </resources>

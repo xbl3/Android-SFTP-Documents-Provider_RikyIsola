@@ -47,6 +47,7 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 			if(password!=null)
 			{
 				String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
+				if(!startDirectory.startsWith("/"))startDirectory="/"+startDirectory;
 				authToken=account.name+"?"+password+startDirectory;
 			}
 		}

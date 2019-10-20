@@ -58,6 +58,29 @@ public class SFTP implements Closeable,FileOperator
 			throw new IOException(e);
 		}
 	}
+	/**
+	 * Return the file to use to get the content of the cache dir
+	 * @param file The file to process
+	 * @return The real file to use
+	 */
+	private String file(File file)
+	{
+		return new File(initialPath,file.getPath()).getPath();
+	}
+	/**
+	 * Return the informations about the file
+	 * @param map The map to process
+	 * @param file The file to find
+	 * @return The value of the map
+	 * @throw IOException If any network error happen when requesting the file info
+	 * @throw FileNotFoundException If the file doesn't exist
+	 */
+	private<T>T getValue(Map<File,T>map,File file)throws IOException
+	{
+		if(!map.containsKey(file))listFiles(file.getParentFile());
+		if(!map.containsKey(file))throw new FileNotFoundException(String.format("File %s is missing",file));
+		return map.get(file);
+	}
 	@Override
 	public long lastModified(File file)throws IOException
 	{
@@ -75,6 +98,12 @@ public class SFTP implements Closeable,FileOperator
 	{
 		logger.fine(String.format("Getting if %s is directory",file(file)));
 		return getValue(directory,file);
+	}
+	@Override
+	public boolean isFile(File file)throws IOException
+	{
+		logger.fine(String.format("Getting if %s is directory",file(file)));
+		return !getValue(directory,file);
 	}
 	@Override
 	public void close()
@@ -170,16 +199,6 @@ public class SFTP implements Closeable,FileOperator
 			throw new IOException(e);
 		}
 	}
-	private String file(File file)
-	{
-		return new File(initialPath,file.getPath()).getPath();
-	}
-	private<T>T getValue(Map<File,T>map,File file)throws IOException
-	{
-		if(!map.containsKey(file))listFiles(file.getParentFile());
-		if(!map.containsKey(file))throw new FileNotFoundException(String.format("File %s is missing",file));
-		return map.get(file);
-	}
 	@Override
 	public void setLastModified(File file,long lastModified)throws IOException
 	{
@@ -202,6 +221,19 @@ public class SFTP implements Closeable,FileOperator
 		catch(SftpException e)
 		{
 			throw new IOException(e);
+		}
+	}
+	@Override
+	public boolean exists(File file)throws IOException
+	{
+		try
+		{
+			getValue(directory,file);
+			return true;
+		}
+		catch(FileNotFoundException e)
+		{
+			return false;
 		}
 	}
 }

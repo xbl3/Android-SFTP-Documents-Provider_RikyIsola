@@ -9,6 +9,7 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 	AccountAuthenticator(Context context)
 	{
 		super(context);
+		Log.d("Created authenticator");
 		this.context=context;
 	}
 	private final Context context;
@@ -39,10 +40,13 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 	public Bundle getAuthToken(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)
 	{
 		Log.i(String.format("Get account token: response=%s account=%s authTokenType=%s options=%s",response,account,authTokenType,options));
+		//Check if an athentication token already exist
 		AccountManager accountManager=AccountManager.get(context);
 		String authToken=accountManager.peekAuthToken(account,authTokenType);
 		if(authToken==null)
 		{
+			//Create a new token using the password and the start directory
+			Log.d("Creating a new authentication token");
 			String password=accountManager.getPassword(account);
 			if(password!=null)
 			{
@@ -51,6 +55,8 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 				authToken=account.name+"?"+password+startDirectory;
 			}
 		}
+		else Log.d("Using an old authentication token");
+		//Post the result with a bundle
 		Bundle result=new Bundle();
 		result.putString(AccountManager.KEY_ACCOUNT_NAME,account.name);
 		result.putString(AccountManager.KEY_ACCOUNT_TYPE,account.type);

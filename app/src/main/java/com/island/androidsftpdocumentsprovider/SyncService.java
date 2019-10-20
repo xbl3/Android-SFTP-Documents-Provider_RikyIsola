@@ -10,6 +10,7 @@ public class SyncService extends Service
 	public void onCreate()
 	{
 		super.onCreate();
+		Log.i("Created sync service");
 		synchronized(sSyncAdapterLock)
 		{
 			if(sSyncAdapter==null)

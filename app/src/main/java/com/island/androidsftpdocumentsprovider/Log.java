@@ -4,6 +4,9 @@ public class Log
 {
 	private static final String LOG_TAG="SFTPDocumentProvider";
 	public static final Logger logger=Logger.getLogger(LOG_TAG);
+	/**
+	 * Fix the android logger handler
+	 */
 	static
 	{
 		if(BuildConfig.DEBUG)
@@ -12,15 +15,28 @@ public class Log
 			logger.setLevel(Level.ALL);
 		}
 	}
-	public static void e(String log,Throwable t)
+	/**
+	 * Log an exception on the default logger
+	 * @param log The log message
+	 * @param t The throwable to log
+	 */
+	static void e(String log,Throwable t)
 	{
 		logger.log(Level.SEVERE,log,t);
 	}
-	public static void i(String log)
+	/**
+	 * Log an info on the default logger
+	 * @param log The log message
+	 */
+	static void i(String log)
 	{
 		logger.info(log);
 	}
-	public static void d(String log)
+	/**
+	 * Log a debug info on the default logger
+	 * @param log The log message
+	 */
+	static void d(String log)
 	{
 		logger.fine(log);
 	}

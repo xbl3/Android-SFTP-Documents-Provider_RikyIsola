@@ -477,6 +477,11 @@ public class SFTPProvider extends DocumentsProvider
 	{
 		return cache.name+file.getPath();
 	}
+	/**
+	 * Get the cache instance from a document id
+	 * @param documentId The document id
+	 * @return The cache instance
+	 */
 	private Cache getCache(String documentId)
 	{
 		String root=getRoot(documentId);
@@ -486,6 +491,11 @@ public class SFTPProvider extends DocumentsProvider
 		}
 		throw new NoSuchElementException(String.format("No cache for %s found",documentId));
 	}
+	/**
+	 * Get the sftp instance from a document id
+	 * @param documentId The document id
+	 * @return The sftp instance
+	 */
 	private SFTP getSFTP(String documentId)throws IOException
 	{
 		try
@@ -509,13 +519,14 @@ public class SFTPProvider extends DocumentsProvider
 	/**
 	 * Add the remote file info to a row
 	 * @param row The row to add the info
+	 * @param cache The cache instance to use
 	 * @param file The remote file
 	 */
 	private static void putFileInfo(MatrixCursor.RowBuilder row,Cache cache,File file) throws IOException
 	{
 		//Put the files info into the row
 		int flags;
-		if(file.isDirectory())flags=Document.FLAG_DIR_SUPPORTS_CREATE;
+		if(cache.isDirectory(file))flags=Document.FLAG_DIR_SUPPORTS_CREATE;
 		else
 		{
 			flags=Document.FLAG_SUPPORTS_WRITE;

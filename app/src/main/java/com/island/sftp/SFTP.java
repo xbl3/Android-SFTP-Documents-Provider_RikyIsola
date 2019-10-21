@@ -178,7 +178,11 @@ public class SFTP implements Closeable,FileOperator
 		logger.fine(String.format("Deleting file %s",file(file)));
 		try
 		{
-			if(isDirectory(file))channel.rmdir(file(file));
+			if(isDirectory(file))
+			{
+				for(File child:listFiles(file))delete(child);
+				channel.rmdir(file(file));
+			}
 			else channel.rm(file(file));
 		}
 		catch(SftpException e)

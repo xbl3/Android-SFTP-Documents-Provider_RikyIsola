@@ -2,21 +2,9 @@ package com.island.sftp;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
-public class FileOperation implements Callable<Exception>
+import java.lang.reflect.*;
+public class FileOperation
 {
-	private FileOperation(FileOperator from,FileOperator to,File source,File destination,boolean move)
-	{
-		this.from=from;
-		this.to=to;
-		this.source=source;
-		this.destination=destination;
-		this.move=move;
-	}
-	private final FileOperator from;
-	private final FileOperator to;
-	private final File source;
-	private final File destination;
-	private final boolean move;
 	/**
 	 * Copy the content of a file from one place on another even if on a different file operator
 	 * @param from Where to get the file
@@ -84,84 +72,7 @@ public class FileOperation implements Callable<Exception>
 	 */
 	public static void move(FileOperator fo,File source,File destination)throws IOException
 	{
-		move(fo,source,destination);
-	}
-	/**
-	 * Asynchronously copy/move the content of a file from one place on another even if on a different file operator
-	 * @param from Where to get the file
-	 * @param to Where to copy the file
-	 * @param source Where to get the file
-	 * @param destination Where to copy the file
-	 * @param If the file should be copyed or moved
-	 */
-	private static Future<Exception>asyncOperation(FileOperator from,FileOperator to,File source,File destination,boolean move)
-	{
-		ExecutorService server=Executors.newSingleThreadExecutor();
-		Future<Exception>future=server.submit(new FileOperation(from,to,source,destination,move));
-		server.shutdown();
-		return future;
-	}
-	/**
-	 * Asynchronously copy the content of a file from one place on another even if on a different file operator
-	 * @param from Where to get the file
-	 * @param to Where to copy the file
-	 * @param source Where to get the file
-	 * @param destination Where to copy the file
-	 */
-	public static Future<Exception>asyncCopy(FileOperator from,FileOperator to,File source,File destination)
-	{
-		return asyncOperation(from,to,source,destination,false);
-	}
-	/**
-	 * Asynchronously copy the content of a file from one place on another even if on a different file operator
-	 * @param from Where to get the file
-	 * @param to Where to copy the file
-	 * @param file The file to copy
-	 */
-	public static Future<Exception>asyncCopy(FileOperator from,FileOperator to,File file)
-	{
-		return asyncCopy(from,to,file,file);
-	}
-	/**
-	 * Asynchronously copy the content of a file from one place on another even if on a different file operator
-	 * @param fo Where to copy the file
-	 * @param source Where to get the file
-	 * @param destination Where to copy the file
-	 */
-	public static Future<Exception>asyncCopy(FileOperator fo,File source,File destination)
-	{
-		return asyncCopy(fo,fo,source,destination);
-	}
-	/**
-	 * Asynchronously move the content of a file from one place on another even if on a different file operator
-	 * @param from Where to get the file
-	 * @param to Where to move the file
-	 * @param source Where to get the file
-	 * @param destination Where to move the file
-	 */
-	public static Future<Exception>asyncMove(FileOperator from,FileOperator to,File source,File destination)
-	{
-		return asyncOperation(from,to,source,destination,true);
-	}
-	/**
-	 * Asynchronously move the content of a file from one place on another even if on a different file operator
-	 * @param from Where to get the file
-	 * @param to Where to move the file
-	 * @param file The file to move
-	 */
-	public static Future<Exception>asyncMove(FileOperator from,FileOperator to,File file)
-	{
-		return asyncMove(from,to,file,file);
-	}
-	/**
-	 * Asynchronously move the content of a file from one place on another even if on a different file operator
-	 * @param fo Where to move the file
-	 * @param source Where to get the file
-	 * @param destination Where to move the file
-	 */
-	public static Future<Exception>asyncMove(FileOperator fo,File source,File destination)
-	{
-		return asyncMove(fo,fo,source,destination);
+		move(fo,fo,source,destination);
 	}
 	/**
 	 * Get a list of recent modifed files
@@ -230,19 +141,5 @@ public class FileOperation implements Callable<Exception>
             }
         }
 		return result;
-	}
-	@Override
-	public Exception call()throws Exception
-	{
-		try
-		{
-			if(move)move(from,to,source,destination);
-			else copy(from,to,source,destination);
-			return null;
-		}
-		catch(IOException e)
-		{
-			return e;
-		}
 	}
 }

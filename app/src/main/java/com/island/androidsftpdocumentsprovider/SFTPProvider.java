@@ -157,22 +157,20 @@ public class SFTPProvider extends DocumentsProvider
 			}
 			if(isWrite)
 			{
+				final String token=getToken(documentId);
 				return ParcelFileDescriptor.open(cache.file(file),accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
 					{
 						@Override
 						public void onClose(IOException exception)
 						{
-							try
+							if(exception==null)
 							{
-								if(exception!=null)throw exception;
-								try(SFTP sftp=getSFTP(documentId))
-								{
-									FileOperation.asyncCopy(cache,sftp,file);
-								}
+								AsyncCopy copy=new AsyncCopy(cache,token,AuthenticationActivity.TIMEOUT,Log.logger);
+								copy.execute(file);
 							}
-							catch(IOException e)
+							else
 							{
-								Log.e("Error closing file",e);
+								Log.e(String.format("Error closing %s",file),exception);
 							}
 						}
 					}
@@ -492,20 +490,19 @@ public class SFTPProvider extends DocumentsProvider
 		throw new NoSuchElementException(String.format("No cache for %s found",documentId));
 	}
 	/**
-	 * Get the sftp instance from a document id
+	 * Get the token from a document id
 	 * @param documentId The document id
 	 * @return The sftp instance
 	 */
-	private SFTP getSFTP(String documentId)throws IOException
+	private String getToken(String documentId)throws IOException
 	{
+		String root=getRoot(documentId);
+		AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
+		Account account=null;
+		for(Account acc:accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE))if(acc.name.equals(root))account=acc;
 		try
 		{
-			String root=getRoot(documentId);
-			AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
-			Account account=null;
-			for(Account acc:accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE))if(acc.name.equals(root))account=acc;
-			String token=accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN);
-			return new SFTP(token,AuthenticationActivity.TIMEOUT,Log.logger);
+			return accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN);
 		}
 		catch(AuthenticatorException e)
 		{
@@ -515,6 +512,15 @@ public class SFTPProvider extends DocumentsProvider
 		{
 			throw new IOException(e);
 		}
+	}
+	/**
+	 * Get the sftp instance from a document id
+	 * @param documentId The document id
+	 * @return The sftp instance
+	 */
+	private SFTP getSFTP(String documentId)throws IOException
+	{
+		return new SFTP(getToken(documentId),AuthenticationActivity.TIMEOUT,Log.logger);
 	}
 	/**
 	 * Add the remote file info to a row

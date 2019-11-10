@@ -6,12 +6,12 @@ public class Cache implements FileOperator
 	private final File cache;
 	public final String name;
 	private final Logger logger;
-	public Cache(File cacheDir,String name,Logger logger)
+	public Cache(File cacheDir,String name,Logger logger)throws IOException
 	{
 		if(logger==null)logger=Logger.getLogger("Cache");
 		this.logger=logger;
 		cache=new File(cacheDir,name);
-		cache.mkdirs();
+		if(!cache.exists()&&!cache.mkdirs())throw new IOException("Can't open the given cache folder");
 		this.name=name;
 		logger.fine(String.format("Opened cache directory %s",cache));
 	}
@@ -27,7 +27,7 @@ public class Cache implements FileOperator
 	/**
 	 * Thrown an exception if the file doesn't exists
 	 * @param file The file to process
-	 * @throw FileNotFoundException If the file doesn't exists
+	 * @throws FileNotFoundException If the file doesn't exists
 	 */
 	private void existsThrow(File file)throws FileNotFoundException
 	{
@@ -36,7 +36,7 @@ public class Cache implements FileOperator
 	/**
 	 * Thrown an exception if the file exists
 	 * @param file The file to process
-	 * @throw FileNotFoundException If the file exists
+	 * @throws FileNotFoundException If the file exists
 	 */
 	private void notExistsThrow(File file)throws IOException
 	{
@@ -48,8 +48,7 @@ public class Cache implements FileOperator
 		//Check if the file exists and isn't a directory
 		logger.fine(String.format("Getting length of %s",file(file)));
 		if(isDirectory(file))throw new IOException(String.format("Can't get the size of a directory %s",file(file)));
-		long length=file(file).length();
-		return length;
+		return file(file).length();
 	}
 	@Override
 	public long lastModified(File file)throws IOException
@@ -57,8 +56,7 @@ public class Cache implements FileOperator
 		//Check if the file exists and is a file
 		logger.fine(String.format("Getting last modified of %s",file(file)));
 		existsThrow(file);
-		long time=file(file).lastModified();
-		return time;
+		return file(file).lastModified();
 	}
 	@Override
 	public boolean isDirectory(File file)throws IOException
@@ -117,7 +115,7 @@ public class Cache implements FileOperator
 	{
 		//Check if the file isn't a directory and exists
 		logger.fine(String.format("Reading file %s",file(file)));
-		if(isDirectory(file))throw new IOException(String.format("Can't read a folder %s"));
+		if(isDirectory(file))throw new IOException(String.format("Can't read a folder %s",file(file)));
 		return new BufferedInputStream(new FileInputStream(file(file)));
 	}
 	@Override

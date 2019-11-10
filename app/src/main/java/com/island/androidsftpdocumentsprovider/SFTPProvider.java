@@ -1,11 +1,11 @@
 package com.island.androidsftpdocumentsprovider;
 import android.accounts.*;
+import android.accounts.OperationCanceledException;
 import android.content.*;
 import android.database.*;
 import android.os.*;
 import android.provider.*;
 import android.provider.DocumentsContract.*;
-import android.util.*;
 import com.island.sftp.*;
 import java.io.*;
 import java.util.*;
@@ -28,7 +28,14 @@ public class SFTPProvider extends DocumentsProvider
 		Log.d(String.format("Got %s accounts",accounts.length));
 		for(Account account:accounts)
 		{
-			tokens.add(new Cache(getContext().getExternalCacheDir(),account.name,Log.logger));
+			try
+			{
+				tokens.add(new Cache(getContext().getExternalCacheDir(),account.name,Log.logger));
+			}
+			catch(IOException e)
+			{
+				throw new RuntimeException(e);
+			}
 			Log.d(String.format("Got account %s cache",account.name));
 		}
 		Log.i("Sftp documents provider created");
@@ -158,7 +165,8 @@ public class SFTPProvider extends DocumentsProvider
 			if(isWrite)
 			{
 				final String token=getToken(documentId);
-				return ParcelFileDescriptor.open(cache.file(file),accessMode,new Handler(getContext().getMainLooper()),new ParcelFileDescriptor.OnCloseListener()
+				Looper looper=Objects.requireNonNull(getContext()).getMainLooper();
+				return ParcelFileDescriptor.open(cache.file(file),accessMode,new Handler(looper),new ParcelFileDescriptor.OnCloseListener()
 					{
 						@Override
 						public void onClose(IOException exception)
@@ -169,7 +177,8 @@ public class SFTPProvider extends DocumentsProvider
 								intent.putExtra(UploaderService.EXTRA_TOKEN,token);
 								intent.putExtra(UploaderService.EXTRA_FILE,file.getPath());
 								intent.putExtra(UploaderService.EXTRA_NAME,cache.name);
-								intent.putExtra(UploaderService.EXTRA_CACHE_DIR,getContext().getExternalCacheDir().getPath());
+								File cacheDir=Objects.requireNonNull(Objects.requireNonNull(getContext()).getExternalCacheDir());
+								intent.putExtra(UploaderService.EXTRA_CACHE_DIR,cacheDir.getPath());
 								getContext().startService(intent);
 							}
 							else
@@ -365,8 +374,7 @@ public class SFTPProvider extends DocumentsProvider
 			Cache cache=getCache(documentId);
 			File file=getFile(documentId);
 			ParcelFileDescriptor parcelFileDescriptor=ParcelFileDescriptor.open(cache.file(file),ParcelFileDescriptor.MODE_READ_ONLY);
-			AssetFileDescriptor assetFileDescriptor=new AssetFileDescriptor(parcelFileDescriptor,0,AssetFileDescriptor.UNKNOWN_LENGTH);
-			return assetFileDescriptor;
+			return new AssetFileDescriptor(parcelFileDescriptor,0,AssetFileDescriptor.UNKNOWN_LENGTH);
 		}
 		catch(Exception e)
 		{
@@ -397,7 +405,7 @@ public class SFTPProvider extends DocumentsProvider
 		}
 		catch(Exception e)
 		{
-			String msg=String.format("Error querying recents of %s",rootId);
+			String msg=String.format("Error querying recent of %s",rootId);
 			Log.e(msg,e);
 			throw new FileNotFoundException(msg);
 		}
@@ -472,7 +480,8 @@ public class SFTPProvider extends DocumentsProvider
 	}
 	/**
 	 * Get the document id from a remote file
-	 * @param ftp The remote file
+	 * @param cache Where is the file
+	 * @param file  The remote file
 	 * @return The document id
 	 */
 	private static String getDocumentId(Cache cache,File file)
@@ -501,18 +510,14 @@ public class SFTPProvider extends DocumentsProvider
 	private String getToken(String documentId)throws IOException
 	{
 		String root=getRoot(documentId);
-		AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
+		AccountManager accountManager=Objects.requireNonNull((AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE));
 		Account account=null;
 		for(Account acc:accountManager.getAccountsByType(AuthenticationActivity.ACCOUNT_TYPE))if(acc.name.equals(root))account=acc;
 		try
 		{
 			return accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN);
 		}
-		catch(AuthenticatorException e)
-		{
-			throw new IOException(e);
-		}
-		catch(android.accounts.OperationCanceledException e)
+		catch(AuthenticatorException|OperationCanceledException e)
 		{
 			throw new IOException(e);
 		}

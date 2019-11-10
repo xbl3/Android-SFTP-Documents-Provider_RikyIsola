@@ -3,9 +3,8 @@ import android.content.*;
 import android.os.*;
 import com.island.sftp.*;
 import java.io.*;
+import java.util.Objects;
 import java.util.logging.*;
-
-import android.os.Handler;
 import android.app.*;
 public class AsyncCopy extends AsyncTask<File,Long,Void>
 {
@@ -15,7 +14,7 @@ public class AsyncCopy extends AsyncTask<File,Long,Void>
 		this.token=token;
 		this.timeout=timeout;
 		this.logger=logger;
-		this.context=context;
+		this.context=context.getApplicationContext();
 	}
 	private final Cache cache;
 	private final String token;
@@ -72,6 +71,6 @@ public class AsyncCopy extends AsyncTask<File,Long,Void>
 		int progress=(int)(values[1]*100/values[0]);
 		NotificationManager notificationManager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
 		Notification notification=UploaderService.getNotification(context,processing.getName(),progress);
-		notificationManager.notify(UploaderService.ONGOING_NOTIFICATION_ID,notification);
+		Objects.requireNonNull(notificationManager).notify(UploaderService.ONGOING_NOTIFICATION_ID,notification);
 	}
 }

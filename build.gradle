@@ -2,7 +2,7 @@
 
 buildscript {
     ext {
-        var = '3.4.2'
+        var = '3.5.2'
     }
     repositories {
         google()

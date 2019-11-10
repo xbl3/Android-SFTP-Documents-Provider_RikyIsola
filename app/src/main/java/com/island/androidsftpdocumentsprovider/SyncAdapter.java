@@ -3,24 +3,15 @@ import android.accounts.*;
 import android.content.*;
 import android.os.*;
 import android.provider.*;
-import android.util.*;
 import android.webkit.*;
 import com.island.sftp.*;
 import java.io.*;
 import java.util.*;
 public class SyncAdapter extends AbstractThreadedSyncAdapter
 {
-	private final ContentResolver contentResolver;
-	public SyncAdapter(Context context,boolean autoInitiate)
+	SyncAdapter(Context context,boolean autoInitiate)
 	{
 		super(context,autoInitiate);
-		contentResolver=context.getContentResolver();
-		Log.i("Created sync adapter");
-	}
-	public SyncAdapter(Context context,boolean autoInitiate,boolean allowParallelSyncs)
-	{
-		super(context,autoInitiate,allowParallelSyncs);
-		contentResolver=context.getContentResolver();
 		Log.i("Created sync adapter");
 	}
 	@Override
@@ -30,21 +21,21 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 		{
 			//Get the authentication token and performs sync
 			Log.i(String.format("OnPerformSync: account=%s extras=%s authority=%s provider=%s syncResult=%s",account,extras,authority,provider,syncResult));
-			AccountManager accountManager=(AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE);
+			AccountManager accountManager=Objects.requireNonNull((AccountManager)Objects.requireNonNull(getContext()).getSystemService(Context.ACCOUNT_SERVICE));
 			Log.d("Got account manager instance");
-			String token=accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN);
+			String token=Objects.requireNonNull(accountManager.getAuthToken(account,AuthenticationActivity.TOKEN_TYPE,null,false,null,null).getResult().getString(AccountManager.KEY_AUTHTOKEN));
 			Log.d("Got token");
 			String startDirectory=accountManager.getUserData(account,AuthenticationActivity.START_DIRECTORY);
 			Log.d(String.format("Got start directory %s",startDirectory));
-			boolean hiddenfolders=Boolean.valueOf(accountManager.getUserData(account,AuthenticationActivity.HIDDEN_FOLDERS));
-			Log.d(String.format("Sync hidden folders %s",hiddenfolders));
+			boolean hiddenFolders=Boolean.valueOf(accountManager.getUserData(account,AuthenticationActivity.HIDDEN_FOLDERS));
+			Log.d(String.format("Sync hidden folders %s",hiddenFolders));
 			Log.i("Connecting to the server");
 			try(SFTP sftp=new SFTP(token,AuthenticationActivity.TIMEOUT,Log.logger))
 			{
 				File root=new File("/");
 				Log.d("Connected");
 				Log.i("Downloading and uploading data");
-				sync(sftp,new Cache(getContext().getExternalCacheDir(),account.name,Log.logger),root,hiddenfolders);
+				sync(sftp,new Cache(getContext().getExternalCacheDir(),account.name,Log.logger),root,hiddenFolders);
 				Log.i("Clean up");
 			}
 		}
@@ -60,15 +51,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 	 * @param cache The local files
 	 * @param folder The folder to sync
 	 * @param hiddenFolders If the hidden folders should be included
-	 * @throw IOException A network exception
+	 * @throws IOException A network exception
 	 */
 	private static void sync(SFTP sftp,Cache cache,File folder,boolean hiddenFolders)throws IOException
 	{
 		//Sync the folder with the remote server
 		Log.d(String.format("Syncing %s",folder));
-		List<File>remotes=new ArrayList<File>(Arrays.asList(sftp.listFiles(folder)));
-		List<File>locals=new ArrayList<File>(Arrays.asList(cache.listFiles(folder)));
-		List<File>localsCopy=new ArrayList<File>(locals);
+		List<File>remotes=new ArrayList<>(Arrays.asList(sftp.listFiles(folder)));
+		List<File>locals=new ArrayList<>(Arrays.asList(cache.listFiles(folder)));
+		List<File>localsCopy=new ArrayList<>(locals);
 		locals.removeAll(remotes);
 		remotes.removeAll(localsCopy);
 		
@@ -108,15 +99,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 	 * Copy a folder from a remote server
 	 * @param sftp The remote sftp server
 	 * @param cache The local files
-	 * @param folder The folder to sync
+	 * @param file The folder to sync
 	 * @param hiddenFolders If the hidden folders should be included
 	 */
-	private static void copy(SFTP sftp,Cache cache,File file,boolean hiddenfolders)
+	private static void copy(SFTP sftp,Cache cache,File file,boolean hiddenFolders)
 	{
 		try
 		{
 			//Skip hidden files
-			if(file.getName().startsWith(".")&&!hiddenfolders)
+			if(file.getName().startsWith(".")&&!hiddenFolders)
 			{
 				Log.d(String.format("Skipping %s",file));
 				return;
@@ -125,7 +116,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 			if(sftp.isDirectory(file))
 			{
 				//Copy the content of the folder
-				for(File child:sftp.listFiles(file))copy(sftp,cache,child,hiddenfolders);
+				for(File child:sftp.listFiles(file))copy(sftp,cache,child,hiddenFolders);
 			}
 			else
 			{
@@ -148,7 +139,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter
 	 * @param file The file to get the mime type
 	 * @param fo The file operator to get the info from
 	 * @return The mime type of the file
-	 * @throw IOException A network exception
+	 * @throws IOException A network exception
 	 */
 	static String getMimeType(File file,FileOperator fo)throws IOException
 	{

@@ -3,8 +3,8 @@ import java.util.logging.*;
 public class Log
 {
 	private static final String LOG_TAG="SFTPDocumentProvider";
-	public static final Logger logger=Logger.getLogger(LOG_TAG);
-	/**
+	static final Logger logger=Logger.getLogger(LOG_TAG);
+	/*
 	 * Fix the android logger handler
 	 */
 	static

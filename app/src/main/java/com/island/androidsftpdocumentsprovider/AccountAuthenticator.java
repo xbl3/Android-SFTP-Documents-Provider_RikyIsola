@@ -2,7 +2,6 @@ package com.island.androidsftpdocumentsprovider;
 import android.accounts.*;
 import android.content.*;
 import android.os.*;
-import android.util.*;
 import java.util.*;
 public class AccountAuthenticator extends AbstractAccountAuthenticator
 {
@@ -40,7 +39,7 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator
 	public Bundle getAuthToken(AccountAuthenticatorResponse response,Account account,String authTokenType,Bundle options)
 	{
 		Log.i(String.format("Get account token: response=%s account=%s authTokenType=%s options=%s",response,account,authTokenType,options));
-		//Check if an athentication token already exist
+		//Check if an authentication token already exist
 		AccountManager accountManager=AccountManager.get(context);
 		String authToken=accountManager.peekAuthToken(account,authTokenType);
 		if(authToken==null)

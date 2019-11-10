@@ -2,7 +2,6 @@ package com.island.androidsftpdocumentsprovider;
 import android.app.*;
 import android.content.*;
 import android.os.*;
-import android.util.*;
 public class AccountService extends Service
 {
 	private AccountAuthenticator authenticator;

@@ -7,7 +7,7 @@ public class AndroidLoggingHandler extends Handler
 	 * Replaces the default broken android logger handler with a new one
 	 * @param rootHandler The new handler to use
 	 */
-    public static void reset(Handler rootHandler)
+    static void reset(Handler rootHandler)
 	{
 		//Replace every old handler with the new one
         Logger rootLogger=LogManager.getLogManager().getLogger("");
@@ -45,7 +45,7 @@ public class AndroidLoggingHandler extends Handler
             Log.e("AndroidLoggingHandler","Error logging message.",e);
         }
     }
-    static int getAndroidLevel(Level level)
+    private static int getAndroidLevel(Level level)
 	{
         int value=level.intValue();
         if(value>=Level.SEVERE.intValue())

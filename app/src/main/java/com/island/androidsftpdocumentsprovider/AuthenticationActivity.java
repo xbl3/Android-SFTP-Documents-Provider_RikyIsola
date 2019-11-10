@@ -2,7 +2,6 @@ package com.island.androidsftpdocumentsprovider;
 import android.accounts.*;
 import android.content.*;
 import android.os.*;
-import android.util.*;
 import android.view.*;
 import android.widget.*;
 public class AuthenticationActivity extends AccountAuthenticatorActivity

@@ -3,11 +3,10 @@ import com.jcraft.jsch.*;
 import com.jcraft.jsch.ChannelSftp.*;
 import java.io.*;
 import java.util.*;
-import java.util.logging.*;
 import java.util.logging.Logger;
 public class SFTP implements Closeable,FileOperator
 {
-	//Token: username@host:port?password/startdirectory
+	//Token: username@host:port?password/start_directory
 	public final String ip;
 	public final int port;
 	public final String user;
@@ -44,14 +43,16 @@ public class SFTP implements Closeable,FileOperator
 			logger.fine("Opening channel");
 			channel.connect();
 			logger.fine("Channel opened");
+			File path;
 			try
 			{
-				initialPath=new File(new File(channel.getHome()),token.substring(token.indexOf("/")));
+				path=new File(new File(channel.getHome()),token.substring(token.indexOf("/")));
 			}
 			catch(SftpException e)
 			{
-				initialPath=new File(token.substring(token.indexOf("/")));
+				path=new File(token.substring(token.indexOf("/")));
 			}
+			initialPath=path;
 		}
 		catch(JSchException e)
 		{
@@ -72,8 +73,8 @@ public class SFTP implements Closeable,FileOperator
 	 * @param map The map to process
 	 * @param file The file to find
 	 * @return The value of the map
-	 * @throw IOException If any network error happen when requesting the file info
-	 * @throw FileNotFoundException If the file doesn't exist
+	 * @throws IOException If any network error happen when requesting the file info
+	 * @throws FileNotFoundException If the file doesn't exist
 	 */
 	private<T>T getValue(Map<File,T>map,File file)throws IOException
 	{
@@ -108,7 +109,7 @@ public class SFTP implements Closeable,FileOperator
 	@Override
 	public void close()
 	{
-		logger.fine(String.format("Closing sftp connection"));
+		logger.fine("Closing sftp connection");
 		channel.quit();
 		session.disconnect();
 	}

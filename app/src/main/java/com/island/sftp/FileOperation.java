@@ -5,6 +5,16 @@ import java.util.concurrent.*;
 import java.lang.reflect.*;
 public class FileOperation
 {
+	public static final int BUFFER=1024;
+	public static int write(InputStream input,OutputStream output,byte[]buffer)throws IOException
+	{
+		int bytesRead=input.read(buffer);
+		if(bytesRead!=-1)
+		{   
+			output.write(buffer,0,bytesRead);
+		}
+		return bytesRead;
+	}
 	/**
 	 * Copy the content of a file from one place on another even if on a different file operator
 	 * @param from Where to get the file
@@ -15,7 +25,12 @@ public class FileOperation
 	 */
 	public static void copy(FileOperator from,FileOperator to,File source,File destination)throws IOException
 	{
-		to.write(destination,from.read(source));
+		InputStream input=from.read(source);
+		OutputStream output=to.write(destination);
+		byte[]buffer=new byte[BUFFER];
+		while(write(input,output,buffer)!=-1);
+		input.close();
+		output.close();
 	}
 	/**
 	 * Copy the content of a file from one place on another even if on a different file operator

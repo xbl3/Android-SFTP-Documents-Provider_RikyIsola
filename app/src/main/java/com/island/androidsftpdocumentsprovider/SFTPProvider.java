@@ -135,7 +135,7 @@ public class SFTPProvider extends DocumentsProvider
 		}
 	}
 	@Override
-	public ParcelFileDescriptor openDocument(final String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
+	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
 	{
 		try
 		{
@@ -165,8 +165,12 @@ public class SFTPProvider extends DocumentsProvider
 						{
 							if(exception==null)
 							{
-								AsyncCopy copy=new AsyncCopy(cache,token,AuthenticationActivity.TIMEOUT,Log.logger);
-								copy.execute(file);
+								Intent intent=new Intent(getContext(),UploaderService.class);
+								intent.putExtra(UploaderService.EXTRA_TOKEN,token);
+								intent.putExtra(UploaderService.EXTRA_FILE,file.getPath());
+								intent.putExtra(UploaderService.EXTRA_NAME,cache.name);
+								intent.putExtra(UploaderService.EXTRA_CACHE_DIR,getContext().getExternalCacheDir().getPath());
+								getContext().startService(intent);
 							}
 							else
 							{
@@ -197,9 +201,9 @@ public class SFTPProvider extends DocumentsProvider
 			Log.i(String.format("Create document: documentId=%s displayName=%s",documentId,displayName));
 			File parent=getFile(documentId);
 			Log.d(String.format("Folder: %s",parent));
-			File file=new File(parent,displayName);
-			Log.d(String.format("Remote file: %s",file));
 			Cache cache=getCache(documentId);
+			File file=uniqueFile(cache,parent,displayName);
+			Log.d(String.format("Remote file: %s",file));
 			try(SFTP sftp=getSFTP(documentId))
 			{
 				if(Document.MIME_TYPE_DIR.equals(mimeType))
@@ -279,13 +283,13 @@ public class SFTPProvider extends DocumentsProvider
 			Log.d(String.format("Source file: %s",source));
 			File parent=source.getParentFile();
 			Log.d(String.format("Parent file: %s",parent));
-			File destination=new File(parent,displayName);
-			Log.d(String.format("Destination file: %s",destination));
 			Cache cache=getCache(documentId);
+			File destination=uniqueFile(cache,parent,displayName);
+			Log.d(String.format("Destination file: %s",destination));
 			try(SFTP sftp=getSFTP(documentId))
 			{
-				FileOperation.move(sftp,source,destination);
-				FileOperation.move(cache,source,destination);
+				sftp.renameTo(source,destination);
+				cache.renameTo(source,destination);
 			}
 			Log.d("Renamed file");
 			return getDocumentId(cache,destination);
@@ -306,9 +310,9 @@ public class SFTPProvider extends DocumentsProvider
 			Log.i(String.format("Move document: sourceDocumentId=%s sourceParentDocumentId=%s targetParentDocumentId=%s",sourceDocumentId,sourceParentDocumentId,targetParentDocumentId));
 			File source=getFile(sourceDocumentId);
 			Log.d(String.format("Source file: %s",source));
-			File destination=new File(targetParentDocumentId,source.getName());
-			Log.d(String.format("Destination file: %s",destination));
 			Cache cache=getCache(sourceDocumentId);
+			File destination=uniqueFile(cache,getFile(targetParentDocumentId),source.getName());
+			Log.d(String.format("Destination file: %s",destination));
 			try(SFTP sftp=getSFTP(sourceDocumentId))
 			{
 				FileOperation.move(sftp,source,destination);
@@ -333,9 +337,9 @@ public class SFTPProvider extends DocumentsProvider
 			Log.i(String.format("Move document: sourceDocumentId=%s targetParentDocumentId=%s",sourceDocumentId,targetParentDocumentId));
 			File source=getFile(sourceDocumentId);
 			Log.d(String.format("Source file: %s",source));
-			File destination=new File(targetParentDocumentId,source.getName());
-			Log.d(String.format("Destination file: %s",destination));
 			Cache cache=getCache(sourceDocumentId);
+			File destination=uniqueFile(cache,getFile(targetParentDocumentId),source.getName());
+			Log.d(String.format("Destination file: %s",destination));
 			try(SFTP sftp=getSFTP(sourceDocumentId))
 			{
 				FileOperation.copy(sftp,source,destination);
@@ -555,5 +559,24 @@ public class SFTPProvider extends DocumentsProvider
 		long lastModified=cache.lastModified(file);
 		row.add(Document.COLUMN_LAST_MODIFIED,lastModified);
 		Log.d(String.format("Added last modified: %s",lastModified));
+	}
+	private File uniqueFile(Cache cache,File parent,String displayName)
+	{
+		File destination=new File(parent,displayName);
+		while(cache.exists(destination))
+		{
+			int lastDot=displayName.lastIndexOf('.');
+			String name,extension;
+			if(lastDot>=0)
+			{
+				name=displayName.substring(0,lastDot);
+				extension=displayName.substring(lastDot+1);
+			}
+			else name=extension=null;
+			name+=" 2";
+			displayName=name+"."+extension;
+			destination=new File(parent,displayName);
+		}
+		return destination;
 	}
 }

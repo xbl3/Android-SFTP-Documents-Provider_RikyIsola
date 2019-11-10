@@ -1,5 +1,4 @@
 package com.island.sftp;
-import android.content.*;
 import java.io.*;
 import java.util.logging.*;
 public class Cache implements FileOperator
@@ -105,23 +104,6 @@ public class Cache implements FileOperator
 		if(!file(file).createNewFile())throw new IOException(String.format("Can't create %s",file));
 	}
 	@Override
-	public void write(File file,InputStream input)throws IOException
-	{
-		//If the file doesn't exists, create it
-		logger.fine(String.format("Writing file %s",file(file)));
-		if(!exists(file))newFile(file);
-		try(OutputStream out=new BufferedOutputStream(new FileOutputStream(file(file))))
-		{
-			while(true)
-			{
-				int read=input.read();
-				if(read==-1)break;
-				out.write(read);
-			}
-		}
-		input.close();
-	}
-	@Override
 	public void delete(File file)throws IOException
 	{
 		//Check if the file exist and that there aren't any errors
@@ -158,5 +140,18 @@ public class Cache implements FileOperator
 	{
 		//Check if the file exists
 		return file(file).exists();
+	}
+	@Override
+	public void renameTo(File oldPath,File newPath) throws IOException
+	{
+		exists(oldPath);
+		notExistsThrow(newPath);
+		if(!file(oldPath).renameTo(file(newPath)))throw new IOException("Can't rename the file");
+	}
+	@Override
+	public OutputStream write(File file)throws IOException
+	{
+		if(!exists(file))newFile(file);
+		return new BufferedOutputStream(new FileOutputStream(file(file)));
 	}
 }

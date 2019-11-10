@@ -49,7 +49,8 @@ public interface FileOperator
 	 * @param input The content to write, it will be closed at the end
 	 * @throw IOException If any error happens
 	 */
-	void write(File file,InputStream input)throws IOException;
+	OutputStream write(File file)throws IOException;
+	void renameTo(File oldPath,File newPath)throws IOException;
 	/**
 	 * Read the content of a file
 	 * @param file The file to use

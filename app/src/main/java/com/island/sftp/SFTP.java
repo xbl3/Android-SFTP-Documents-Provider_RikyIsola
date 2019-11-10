@@ -152,27 +152,6 @@ public class SFTP implements Closeable,FileOperator
 		}
 	}
 	@Override
-	public void write(File file,InputStream input)throws IOException
-	{
-		logger.fine(String.format("Writing file %s",file(file)));
-		try
-		{
-			OutputStream out=new BufferedOutputStream(channel.put(file(file)));
-			while(true)
-			{
-				int read=input.read();
-				if(read==-1)break;
-				out.write(read);
-			}
-			input.close();
-			out.close();
-		}
-		catch(SftpException e)
-		{
-			throw new IOException(e);
-		}
-	}
-	@Override
 	public void delete(File file)throws IOException
 	{
 		logger.fine(String.format("Deleting file %s",file(file)));
@@ -238,6 +217,30 @@ public class SFTP implements Closeable,FileOperator
 		catch(FileNotFoundException e)
 		{
 			return false;
+		}
+	}
+	@Override
+	public void renameTo(File oldPath,File newPath)throws IOException
+	{
+		try
+		{
+			channel.rename(file(oldPath),file(newPath));
+		}
+		catch(SftpException e)
+		{
+			throw new IOException(e);
+		}
+	}
+	@Override
+	public OutputStream write(File file)throws IOException
+	{
+		try
+		{
+			return channel.put(file(file));
+		}
+		catch(SftpException e)
+		{
+			throw new IOException(e);
 		}
 	}
 }

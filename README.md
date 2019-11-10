@@ -7,9 +7,9 @@ Download and install the latest app from the [release section](https://github.co
 
 ## Usage
 
-- Open the settings, go to the account section and add a new Secure File Transfer Protocol account, enter your credentials
+- Open the settings, go to the account section and add a new SSH File Transfer Protocol account, enter your credentials
 
-- Open the android defsult file manager and on the left panel you should see the ftp section where you can connect to the ftp server
+- Open the android defsult file manager and on the left panel you should see the sftp section where you can connect to the sftp server
 
 ## Troubleshoot
 

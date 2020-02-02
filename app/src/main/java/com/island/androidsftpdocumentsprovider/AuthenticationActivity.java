@@ -2,6 +2,7 @@ package com.island.androidsftpdocumentsprovider;
 import android.accounts.*;
 import android.content.*;
 import android.os.*;
+import android.provider.*;
 import android.view.*;
 import android.widget.*;
 public class AuthenticationActivity extends AccountAuthenticatorActivity
@@ -50,6 +51,9 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity
 			ContentResolver.setSyncAutomatically(account,AUTHORITY,true);
 		}
 		Log.d(String.format("Added %s account %s to the account manager",accountType,username));
+		
+		//Add the document provider to the file manager list
+		getContentResolver().notifyChange(DocumentsContract.buildRootsUri(AUTHORITY),null);
 		
 		//Stop the activity with the result account
 		Bundle data=new Bundle();

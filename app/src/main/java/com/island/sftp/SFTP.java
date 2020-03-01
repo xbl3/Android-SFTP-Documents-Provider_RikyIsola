@@ -1,125 +1,95 @@
 package com.island.sftp;
+import android.net.*;
+import android.provider.*;
+import android.util.*;
+import android.webkit.*;
+import com.island.androidsftpdocumentsprovider.provider.*;
 import com.jcraft.jsch.*;
 import com.jcraft.jsch.ChannelSftp.*;
 import java.io.*;
+import java.net.*;
 import java.util.*;
-import java.util.logging.Logger;
-public class SFTP implements Closeable,FileOperator
+public class SFTP implements Closeable
 {
-	//Token: username@host:port?password/start_directory
-	public final String ip;
-	public final int port;
-	public final String user;
-	public final String password;
-	public final File initialPath;
-	public final Session session;
-	public final ChannelSftp channel;
+	private static final int TIMEOUT=20000;
+	private static final int BUFFER=1024;
+	public static final String SCHEME="sftp://";
+	public final Uri uri;
+	private final String password;
+	private final Session session;
+	private final ChannelSftp channel;
 	private final HashMap<File,Long>lastModified=new HashMap<>();
 	private final HashMap<File,Long>size=new HashMap<>();
 	private final HashMap<File,Boolean>directory=new HashMap<>();
-	private final Logger logger;
-	public SFTP(String token,int timeout,Logger logger)throws IOException
+	private boolean disconnected;
+	public SFTP(Uri uri,String password)throws ConnectException
 	{
-		user=token.substring(0,token.indexOf("@"));
-		ip=token.substring(token.indexOf("@")+1,token.indexOf(":"));
-		port=Integer.valueOf(token.substring(token.indexOf(":")+1,token.indexOf("?")));
-		password=token.substring(token.indexOf("?")+1,token.indexOf("/"));
-		if(logger==null)logger=Logger.getLogger("SFTP");
-		this.logger=logger;
+		Log.d(SFTPProvider.TAG,String.format("Created new connection for %s",uri.getAuthority()));
+		checkArguments(uri,password);
+		this.uri=uri;
+		this.password=password;
 		JSch jsch=new JSch();
+		directory.put(new File("/"),true);
+		lastModified.put(new File("/"),0l);
 		try
 		{
-			session=jsch.getSession(user,ip,port);
+			session=jsch.getSession(uri.getUserInfo(),uri.getHost(),uri.getPort());
 			session.setPassword(password);
 			java.util.Properties config=new java.util.Properties();
 			config.put("StrictHostKeyChecking","no");
 			session.setConfig(config);
-			session.setTimeout(timeout);
+			session.setTimeout(TIMEOUT);
 			session.setConfig("PreferredAuthentications","password");
-			logger.fine(String.format("Connecting to %s@%s:%s",user,ip,port));
 			session.connect();
-			logger.fine(String.format("Connected to %s@%s:%s",user,ip,port));
 			channel=(ChannelSftp)session.openChannel("sftp");
-			logger.fine("Opening channel");
 			channel.connect();
-			logger.fine("Channel opened");
-			File path;
-			try
-			{
-				path=new File(new File(channel.getHome()),token.substring(token.indexOf("/")));
-			}
-			catch(SftpException e)
-			{
-				path=new File(token.substring(token.indexOf("/")));
-			}
-			initialPath=path;
 		}
 		catch(JSchException e)
 		{
-			throw new IOException(e);
+			ConnectException exception=new ConnectException(String.format("Can't connect to %s",uri));
+			exception.initCause(e);
+			throw exception;
 		}
 	}
-	/**
-	 * Return the file to use to get the content of the cache dir
-	 * @param file The file to process
-	 * @return The real file to use
-	 */
-	private String file(File file)
-	{
-		return new File(initialPath,file.getPath()).getPath();
-	}
-	/**
-	 * Return the informations about the file
-	 * @param map The map to process
-	 * @param file The file to find
-	 * @return The value of the map
-	 * @throws IOException If any network error happen when requesting the file info
-	 * @throws FileNotFoundException If the file doesn't exist
-	 */
 	private<T>T getValue(Map<File,T>map,File file)throws IOException
 	{
-		if(!map.containsKey(file))listFiles(file.getParentFile());
+		checkArguments(map,file);
+		if(!map.containsKey(file))
+		{
+			Log.d(SFTPProvider.TAG,"Requested file attributes are unknown");
+			listFiles(file.getParentFile());
+		}
 		if(!map.containsKey(file))throw new FileNotFoundException(String.format("File %s is missing",file));
 		return map.get(file);
 	}
-	@Override
 	public long lastModified(File file)throws IOException
 	{
-		logger.fine(String.format("Getting last modified of %s",file(file)));
+		checkArguments(file);
 		return getValue(lastModified,file);
 	}
-	@Override
 	public long length(File file)throws IOException
 	{
-		logger.fine(String.format("Getting length of %s",file(file)));
+		checkArguments(file);
 		return getValue(size,file);
 	}
-	@Override
 	public boolean isDirectory(File file)throws IOException
 	{
-		logger.fine(String.format("Getting if %s is directory",file(file)));
+		checkArguments(file);
 		return getValue(directory,file);
-	}
-	@Override
-	public boolean isFile(File file)throws IOException
-	{
-		logger.fine(String.format("Getting if %s is directory",file(file)));
-		return !getValue(directory,file);
 	}
 	@Override
 	public void close()
 	{
-		logger.fine("Closing sftp connection");
-		channel.quit();
 		session.disconnect();
+		channel.quit();
+		disconnected=true;
 	}
-	@Override
 	public File[]listFiles(File file)throws IOException
 	{
-		logger.fine(String.format("Listing files of %s",file(file)));
+		checkArguments(file);
 		try
 		{
-			Vector vector=channel.ls(file(file));
+			Vector vector=channel.ls(file.getPath());
 			List<File>files=new ArrayList<>(vector.size()-2);
 			for(Object obj:vector)
 			{
@@ -136,80 +106,65 @@ public class SFTP implements Closeable,FileOperator
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
 	public void newFile(File file)throws IOException
 	{
-		logger.fine(String.format("Creating file %s",file(file)));
+		checkArguments(file);
 		try
 		{
-			channel.put(file(file)).close();
+			channel.put(file.getPath()).close();
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
 	public void delete(File file)throws IOException
 	{
-		logger.fine(String.format("Deleting file %s",file(file)));
+		checkArguments(file);
 		try
 		{
 			if(isDirectory(file))
 			{
 				for(File child:listFiles(file))delete(child);
-				channel.rmdir(file(file));
+				channel.rmdir(file.getPath());
 			}
-			else channel.rm(file(file));
+			else channel.rm(file.getPath());
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
 	public InputStream read(File file)throws IOException
 	{
-		logger.fine(String.format("Reading file %s",file(file)));
+		checkArguments(file);
 		try
 		{
-			return new BufferedInputStream(channel.get(file(file)));
+			return new BufferedInputStream(channel.get(file.getPath()));
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
-	public void setLastModified(File file,long lastModified)throws IOException
-	{
-		try
-		{
-			channel.setMtime(file(file),(int)lastModified);
-		}
-		catch (SftpException e)
-		{
-			throw new IOException(e);
-		}
-	}
-	@Override
 	public void mkdirs(File file)throws IOException
 	{
+		checkArguments(file);
 		try
 		{
-			channel.mkdir(file(file));
+			channel.mkdir(file.getPath());
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
 	public boolean exists(File file)throws IOException
 	{
+		checkArguments(file);
 		try
 		{
 			getValue(directory,file);
@@ -220,28 +175,142 @@ public class SFTP implements Closeable,FileOperator
 			return false;
 		}
 	}
-	@Override
 	public void renameTo(File oldPath,File newPath)throws IOException
 	{
+		checkArguments(oldPath,newPath);
 		try
 		{
-			channel.rename(file(oldPath),file(newPath));
+			channel.rename(oldPath.getPath(),newPath.getPath());
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
 	}
-	@Override
 	public OutputStream write(File file)throws IOException
 	{
+		checkArguments(file);
 		try
 		{
-			return channel.put(file(file));
+			return channel.put(file.getPath());
 		}
 		catch(SftpException e)
 		{
-			throw new IOException(e);
+			throw getException(e);
 		}
+	}
+	public static File getFile(Uri uri)
+	{
+		Objects.requireNonNull(uri);
+		return new File(uri.getPath());
+	}
+	public Uri getUri(File file)
+	{
+		Objects.requireNonNull(file);
+		return Uri.parse(SCHEME+uri.getAuthority()+file.getPath());
+	}
+	public void get(File from,File to)throws IOException
+	{
+		checkArguments(from,to);
+		try
+		{
+			channel.get(from.getPath(),to.getPath());
+		}
+		catch(SftpException e)
+		{
+			throw getException(e);
+		}
+	}
+	public void copy(File from,File to)throws IOException
+	{
+		checkArguments(from,to);
+		try
+		{
+			InputStream input=new BufferedInputStream(channel.get(from.getPath()));
+			OutputStream output=new BufferedOutputStream(channel.put(to.getPath()));
+			byte[]buffer=new byte[BUFFER];
+			while(true)if(write(input,output,buffer)==-1)break;
+			input.close();
+			output.close();
+		}
+		catch(SftpException e)
+		{
+			throw getException(e);
+		}
+	}
+	public String getMimeType(File file)throws IOException
+	{
+		Objects.requireNonNull(file);
+        if(isDirectory(file))
+		{
+			return DocumentsContract.Document.MIME_TYPE_DIR;
+		}
+		else
+		{
+			String name=file.getName();
+			int lastDot=name.lastIndexOf('.');
+			if(lastDot>=0)
+			{
+				String extension=name.substring(lastDot+1);
+				String mime=MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+				if(mime!=null)return mime;
+			}
+			return"application/octet-stream";
+		}
+    }
+	private static int write(InputStream input,OutputStream output,byte[]buffer)throws IOException
+	{
+		assert input!=null;
+		assert output!=null;
+		assert buffer!=null;
+		int bytesRead=input.read(buffer);
+		if(bytesRead!=-1)
+		{   
+			output.write(buffer,0,bytesRead);
+		}
+		return bytesRead;
+	}
+	public static void writeAll(InputStream input,OutputStream output,Observer observer)throws IOException
+	{
+		Objects.requireNonNull(input);
+		Objects.requireNonNull(output);
+		input=new BufferedInputStream(input);
+		output=new BufferedOutputStream(output);
+		byte[]buffer=new byte[SFTP.BUFFER];
+		int bytesRead=0;
+		long wrote=0;
+		while((bytesRead=SFTP.write(input,output,buffer))!=-1)
+		{
+			wrote+=bytesRead;
+			observer.update(null,wrote);
+		}
+		input.close();
+		output.close();
+	}
+	public static void writeAll(InputStream input,OutputStream output)throws IOException
+	{
+		writeAll(input,output,null);
+	}
+	private IOException getException(SftpException cause)
+	{
+		assert cause!=null;
+		if(cause.getCause()!=null)
+		{
+			SocketException exception=new SocketException("Connection closed");
+			exception.initCause(cause);
+			return exception;
+		}
+		else
+		{
+			ProtocolException exception=new ProtocolException(uri.getScheme());
+			exception.initCause(cause);
+			return exception;
+		}
+	}
+	private void checkArguments(Object...arguments)
+	{
+		assert arguments!=null;
+		for(Object argument:arguments)Objects.requireNonNull(argument,Arrays.toString(arguments));
+		if(disconnected)throw new IllegalStateException("Connection already closed");
 	}
 }

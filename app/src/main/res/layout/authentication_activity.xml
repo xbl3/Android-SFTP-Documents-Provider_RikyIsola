@@ -3,25 +3,20 @@
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_height="match_parent"
 	android:layout_width="match_parent"
-	android:orientation="vertical">
+	android:orientation="vertical"
+	android:gravity="center">
 
-	<RelativeLayout
+	<TextView
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		android:text="@string/ip"
 		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="@string/ip"/>
-
-	</RelativeLayout>
+		android:gravity="center"/>
 
 	<RelativeLayout
 		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
+		android:layout_width="wrap_content"
 		android:layout_weight="1.0"
 		android:gravity="center">
 
@@ -35,22 +30,16 @@
 
 	</RelativeLayout>
 
-	<RelativeLayout
-		android:layout_width="match_parent"
+	<TextView
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:gravity="center"
-		android:layout_weight="1.0">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/username"
-			android:textAppearance="?android:attr/textAppearanceLarge"/>
-
-	</RelativeLayout>
+		android:text="@string/username"
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		android:layout_weight="1.0"
+		android:gravity="center"/>
 
 	<RelativeLayout
-		android:layout_width="match_parent"
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_weight="1.0"
 		android:gravity="center">
@@ -64,22 +53,16 @@
 
 	</RelativeLayout>
 
-	<RelativeLayout
-		android:layout_width="match_parent"
+	<TextView
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:text="@string/password"
+		android:textAppearance="?android:attr/textAppearanceLarge"
 		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/password"
-			android:textAppearance="?android:attr/textAppearanceLarge"/>
-
-	</RelativeLayout>
+		android:gravity="center"/>
 
 	<RelativeLayout
-		android:layout_width="match_parent"
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_weight="1.0"
 		android:gravity="center">
@@ -93,54 +76,18 @@
 			android:gravity="center"/>
 
 	</RelativeLayout>
-	
-	<RelativeLayout
-		android:layout_width="match_parent"
+
+	<TextView
+		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		android:text="@string/port"
 		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/start_directory"
-			android:textAppearance="?android:attr/textAppearanceLarge"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<EditText
-			android:inputType="text"
-			android:layout_width="wrap_content"
-			android:ems="10"
-			android:layout_height="wrap_content"
-			android:id="@+id/start_directory"
-			android:gravity="center"/>
-
-	</RelativeLayout>
-	
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="@string/port"/>
-
-	</RelativeLayout>
+		android:gravity="center"/>
 
 	<RelativeLayout
 		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
+		android:layout_width="wrap_content"
 		android:layout_weight="1.0"
 		android:gravity="center">
 
@@ -153,38 +100,10 @@
 			android:text="22"/>
 
 	</RelativeLayout>
-	
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceLarge"
-			android:text="@string/include_hidden_folders"/>
-
-	</RelativeLayout>
 
 	<RelativeLayout
 		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:layout_weight="1.0"
-		android:gravity="center">
-
-		<Switch
-			android:layout_height="wrap_content"
-			android:layout_width="wrap_content"
-			android:id="@+id/hiddenfolders"
-			android:gravity="center"/>
-
-	</RelativeLayout>
-
-	<RelativeLayout
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
+		android:layout_width="wrap_content"
 		android:layout_weight="1.0"
 		android:gravity="center">
 

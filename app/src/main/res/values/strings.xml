@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name" translatable="false">SFTP Documents Provider</string>
-	<string name="account_name" translatable="false">SSH File Transfer Protocol</string>
-	<string name="sftp" translatable="false">SFTP</string>
+    <string name="app_name">SFTP Documents Provider</string>
+	<string name="account_name">SSH File Transfer Protocol</string>
+	<string name="sftp">SFTP</string>
 	<string name="ip">Ip</string>
 	<string name="port">Port</string>
 	<string name="username">Username</string>
@@ -11,4 +11,5 @@
 	<string name="anonymous">Anonymous</string>
 	<string name="include_hidden_folders">Include hidden folders</string>
 	<string name="foreground">Foreground</string>
+	<string name="notification_description">Uploading: %s %%</string>
 </resources>

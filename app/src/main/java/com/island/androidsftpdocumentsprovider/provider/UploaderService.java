@@ -1,35 +1,28 @@
-package com.island.androidsftpdocumentsprovider;
+package com.island.androidsftpdocumentsprovider.provider;
 import android.app.*;
 import android.content.*;
 import android.os.*;
+import android.util.*;
+import com.island.androidsftpdocumentsprovider.*;
 import com.island.sftp.*;
 import java.io.*;
-import java.util.Objects;
+import java.util.*;
 
 public class UploaderService extends Service
 {
 	public static final String FOREGROUND_CHANNEL_ID="foreground";
 	public static final int ONGOING_NOTIFICATION_ID=1;
-	public static final String EXTRA_CACHE_DIR="cache_dir";
-	public static final String EXTRA_TOKEN="token";
-	public static final String EXTRA_NAME="name";
-	public static final String EXTRA_FILE="file";
 	@Override
 	public int onStartCommand(Intent intent,int flags,int startId)
 	{
-		File file=new File(Objects.requireNonNull(intent.getStringExtra(EXTRA_FILE)));
+		Log.i(SFTPProvider.TAG,String.format("UploaderService onStartCommand %s %s %s",intent,flags,startId));
+		Objects.requireNonNull(intent);
+		Objects.requireNonNull(intent.getData());
+		File file=SFTP.getFile(intent.getData());
 		startForeground(ONGOING_NOTIFICATION_ID,getNotification(this,file.getName(),0));
-		try
-		{
-			Cache cache=new Cache(new File(Objects.requireNonNull(intent.getStringExtra(EXTRA_CACHE_DIR))),intent.getStringExtra(EXTRA_NAME),Log.logger);
-			AsyncCopy copy=new AsyncCopy(this,cache,intent.getStringExtra(EXTRA_TOKEN),AuthenticationActivity.TIMEOUT,Log.logger);
-			copy.execute(file);
-			return START_REDELIVER_INTENT;
-		}
-		catch(IOException e)
-		{
-			throw new RuntimeException(e);
-		}
+		AsyncCopy copy=new AsyncCopy(this,intent.getData());
+		copy.execute(file);
+		return START_REDELIVER_INTENT;
 	}
 	@Override
 	public IBinder onBind(Intent intent)
@@ -38,13 +31,15 @@ public class UploaderService extends Service
 	}
 	static Notification getNotification(Context context,String title,int progress)
 	{
+		Objects.requireNonNull(context);
+		Objects.requireNonNull(title);
 		Notification.Builder builder;
 		if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O)
 		{
 			CharSequence name=context.getString(R.string.foreground);
 			int importance=NotificationManager.IMPORTANCE_LOW;
 			NotificationChannel channel=new NotificationChannel(FOREGROUND_CHANNEL_ID,name,importance);
-			NotificationManager notificationManager=Objects.requireNonNull(context.getSystemService(NotificationManager.class));
+			NotificationManager notificationManager=context.getSystemService(NotificationManager.class);
 			notificationManager.createNotificationChannel(channel);
 			builder=new Notification.Builder(context,FOREGROUND_CHANNEL_ID);
 		}
@@ -52,14 +47,15 @@ public class UploaderService extends Service
 		builder.setContentTitle(title);
 		if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.LOLLIPOP)builder.setVisibility(Notification.VISIBILITY_PUBLIC);
 		builder.setOngoing(true);
-		builder.setContentText(getNotificationDescription(progress));
+		builder.setContentText(getNotificationDescription(context,progress));
 		builder.setSmallIcon(R.drawable.ic_stat_name);
 		builder.setPriority(Notification.PRIORITY_LOW);
 		builder.setProgress(100,progress,false);
 		return builder.build();
 	}
-	private static String getNotificationDescription(long progress)
+	private static String getNotificationDescription(Context context,long progress)
 	{
-		return String.format("Uploading: %s",progress)+"%";
+		assert context!=null;
+		return String.format(context.getString(R.string.notification_description),progress);
 	}
 }
